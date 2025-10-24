@@ -1,8 +1,8 @@
 ---
-description: 
+trigger: glob
 globs: src/db/*.ts,src/middleware/*.ts,src/lib/*.ts
-alwaysApply: false
 ---
+
 ### Backend and Database
 
 - Use Supabase for backend services, including authentication and database interactions.

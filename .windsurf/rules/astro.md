@@ -1,8 +1,8 @@
 ---
-description: 
+trigger: glob
 globs: *.astro
-alwaysApply: false
 ---
+
 ### Guidelines for Astro
 
 - Leverage View Transitions API for smooth page transitions (use ClientRouter)

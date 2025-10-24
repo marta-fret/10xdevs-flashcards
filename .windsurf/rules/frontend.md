@@ -1,8 +1,8 @@
 ---
-description: 
+trigger: glob
 globs: *.tsx,*.astro
-alwaysApply: false
 ---
+
 ## Frontend
 
 ### General Guidelines

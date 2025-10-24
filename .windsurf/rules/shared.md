@@ -1,7 +1,7 @@
 ---
+trigger: always_on
 description: 
 globs: 
-alwaysApply: true
 ---
 # AI Rules for {app-name}
 
