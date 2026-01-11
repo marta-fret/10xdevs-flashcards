@@ -70,10 +70,10 @@ As mentioned, users table is managed by Supabase. These are its columns:
 
 ## 3. Indexes
 
-- `CREATE INDEX ON flashcards (user_id);`
-- `CREATE INDEX ON flashcards (generation_id);`
-- `CREATE INDEX ON generations (user_id);`
-- `CREATE INDEX ON generation_error_logs (user_id);`
+- `CREATE INDEX ON public.flashcards (user_id);`
+- `CREATE INDEX ON public.flashcards (generation_id);`
+- `CREATE INDEX ON public.generations (user_id);`
+- `CREATE INDEX ON public.generation_error_logs (user_id);`
 
 ## 4. PostgreSQL Policies (Row-Level Security)
 
@@ -107,7 +107,7 @@ RLS will be enabled on all tables to ensure users can only access their own data
 A trigger function to automatically update the `updated_at` column to the current timestamp whenever a row is modified.
 
 ```sql
-CREATE OR REPLACE FUNCTION handle_updated_at()
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = now();
@@ -133,7 +133,7 @@ A trigger on the `generations` table that fires the `handle_updated_at` function
 
 ```sql
 CREATE TRIGGER on_generation_update
-  BEFORE UPDATE ON generations
+  BEFORE UPDATE ON public.generations
   FOR EACH ROW
-  EXECUTE PROCEDURE handle_updated_at();
+  EXECUTE PROCEDURE public.handle_updated_at();
 ```
