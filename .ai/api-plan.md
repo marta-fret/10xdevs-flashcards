@@ -9,16 +9,13 @@
   DB table: `flashcards`  
   Fields: `id`, `user_id`, `front`, `back`, `source`, `generation_id`, `created_at`, `updated_at`.
 
-- **Generation** (AI generation event)  
+- **Generation** (stores metadata and results of AI generation)  
   DB table: `generations`  
   Fields: `id`, `user_id`, `model`, `generated_count`, `accepted_unedited_count`, `accepted_edited_count`, `source_text_hash`, `source_text_length`, `generation_duration`, `created_at`, `updated_at`.
 
-- **GenerationErrorLog** (AI generation error log)  
+- **Generation Error Logs** (stores errors that occur during AI generation)  
   DB table: `generation_error_logs`  
   Fields: `id`, `user_id`, `model`, `source_text_hash`, `source_text_length`, `error_code`, `error_message`, `created_at`.
-
-- **Learning Session (ephemeral)**  
-  In-memory / client-managed session over a user’s `flashcards`. No dedicated table in the current schema. The API only orchestrates which card to show next and records per-session feedback in memory for the duration of the session.
 
 All data access is scoped to the authenticated user via Supabase Auth and PostgreSQL RLS (`user_id = users.id`).
 
@@ -26,134 +23,57 @@ All data access is scoped to the authenticated user via Supabase Auth and Postgr
 
 ### 2. Endpoints
 
-#### 2.1 Auth / Account Management (Supabase-backed)
+#### 2.1 Flashcards
 
-Auth endpoints are thin wrappers over Supabase Auth to keep the frontend simple and consistent. All operate on the current authenticated user.
-
-##### 2.1.1 POST `/api/auth/signup`
-
-- **Description**: Create a new user account via Supabase Email+Password. Returns a session and user profile.
-- **Request JSON**:
-  - `email`: string, required, valid email.
-  - `password`: string, required, must meet password policy (e.g. min length 8).
-- **Response JSON (201)**:
-  - `user`: `{ id: string; email: string; created_at: string; }`
-  - `session`: `{ access_token: string; refresh_token: string; expires_in: number; }`
-- **Success**:
-  - `201 Created` – account created, user logged in.
-- **Errors**:
-  - `400 Bad Request` – invalid email/password format.
-  - `409 Conflict` – email already registered.
-  - `500 Internal Server Error` – unexpected Supabase/Auth issue.
-
-##### 2.1.2 POST `/api/auth/login`
-
-- **Description**: Log in with email and password, returning Supabase session tokens.
-- **Request JSON**:
-  - `email`: string, required.
-  - `password`: string, required.
-- **Response JSON (200)**:
-  - `user`: `{ id: string; email: string; created_at: string; }`
-  - `session`: `{ access_token: string; refresh_token: string; expires_in: number; }`
-- **Success**:
-  - `200 OK` – login successful.
-- **Errors**:
-  - `400 Bad Request` – malformed payload.
-  - `401 Unauthorized` – invalid credentials.
-  - `500 Internal Server Error` – Supabase/Auth error.
-
-##### 2.1.3 POST `/api/auth/logout`
-
-- **Description**: Invalidate current session (server-side logout) and clear auth cookies if used.
-- **Request JSON**: none.
-- **Response JSON (200)**:
-  - `message`: string, e.g. `"logged_out"`.
-- **Success**:
-  - `200 OK` – session ended.
-- **Errors**:
-  - `401 Unauthorized` – no active session.
-  - `500 Internal Server Error` – Supabase/Auth error.
-
-##### 2.1.4 POST `/api/auth/change-password`
-
-- **Description**: Change password for the currently authenticated user.
-- **Request JSON**:
-  - `current_password`: string, required.
-  - `new_password`: string, required, must meet password policy.
-- **Response JSON (200)**:
-  - `message`: string, e.g. `"password_changed"`.
-- **Success**:
-  - `200 OK` – password updated.
-- **Errors**:
-  - `400 Bad Request` – malformed payload or weak new password.
-  - `401 Unauthorized` – user not authenticated.
-  - `403 Forbidden` – current password invalid.
-  - `500 Internal Server Error` – Supabase/Auth error.
-
-##### 2.1.5 DELETE `/api/auth/account`
-
-- **Description**: Permanently delete the current user account and all personal data (GDPR-compliant). Backend calls Supabase to remove the user; cascading deletes remove related rows (`ON DELETE CASCADE`).
-- **Request JSON**:
-  - `confirm`: string, required, must equal `"DELETE"` to prevent accidental deletion.
-- **Response JSON (200)**:
-  - `message`: string, e.g. `"account_deleted"`.
-- **Success**:
-  - `200 OK` – account and related data deleted.
-- **Errors**:
-  - `400 Bad Request` – confirmation string invalid.
-  - `401 Unauthorized` – user not authenticated.
-  - `500 Internal Server Error` – deletion failed.
-
----
-
-#### 2.2 Flashcards
-
-All flashcard endpoints require authentication and are scoped to the current user via Supabase RLS on `flashcards.user_id`.
-
-##### 2.2.1 GET `/api/flashcards`
+##### 2.1.1 GET `/flashcards`
 
 - **Description**: Paginated list of the user’s flashcards with optional text search and sorting.
 - **Query parameters**:
   - `page`: integer, optional, default `1`, min `1`.
-  - `page_size`: integer, optional, default `20`, max `100`.
+  - `limit`: integer, optional, default `10`, max `100`.
   - `q`: string, optional – search term matched against `front` and `back` (`ILIKE '%q%'`).
-  - `sort_by`: string, optional, one of `created_at` (default), `updated_at`.
-  - `sort_dir`: string, optional, `asc` or `desc` (default: `desc`).
+  - `sort`: string, optional, e.g. `created_at` (default).
+  - `order`: string, optional, `asc` or `desc` (default: `desc`).
+  - optional filters (e.g. `source=ai-full`)
 - **Response JSON (200)**:
   - `items`: array of
     - `{ id: number; front: string; back: string; source: 'ai-full' | 'ai-edited' | 'manual'; generation_id: number | null; created_at: string; updated_at: string; }`
   - `pagination`:
-    - `{ page: number; page_size: number; total_items: number; total_pages: number; }`
+    - `{ page: number; limit: number; total_items: number; total_pages: number; }`
 - **Success**:
   - `200 OK` – list returned (possibly empty).
 - **Errors**:
-  - `400 Bad Request` – invalid pagination or sort parameters.
+  - `400 Bad Request` – invalid query parameters.
   - `401 Unauthorized` – not logged in.
   - `500 Internal Server Error` – DB error.
 
-##### 2.2.2 POST `/api/flashcards`
+##### 2.1.2 POST `/flashcards`
 
-- **Description**: Create a new _manual_ flashcard for the current user.
+- **Description**: Create one or more flashcards (manual or AI-generated) for the current user.
 - **Request JSON**:
-  - `front`: string, required, max 200 characters.
-  - `back`: string, required, max 500 characters.
+  - An array of flashcard objects, each:
+    - `front`: string, required, max 200 characters.
+    - `back`: string, required, max 500 characters.
+    - `source`: string, required, one of `'ai-full'`, `'ai-edited'`, `'manual'`.
+    - `generation_id`: integer or null, required if source is `ai-full` or `ai-edited`, must be null for `manual` source; when set, must reference an existing `generations.id` for this user.
 - **Server behavior**:
-  - Sets `source = 'manual'`.
-  - `user_id` is taken from authenticated user, not from the request.
+  - Iterates over the array and validates each flashcard.
+  - Uses the authenticated user as `user_id` for all inserted rows; `user_id` is never taken from the request body.
+  - Inserts one row into `flashcards` for each element.
+  - Updates `generations.accepted_unedited_count` and `generations.accepted_edited_count` based on the flashcards created.
 - **Response JSON (201)**:
-  - Newly created flashcard object:
-    - `{ id: number; front: string; back: string; source: 'manual'; generation_id: number | null; created_at: string; updated_at: string; }`
+  - `flashcards`: array of newly created flashcards, each:
+    - `{ id: number; front: string; back: string; source: 'ai-full' | 'ai-edited' | 'manual'; generation_id: number | null; created_at: string; updated_at: string; }`
 - **Success**:
-  - `201 Created` – flashcard created.
+  - `201 Created` – one or more flashcards created.
 - **Errors**:
-  - `400 Bad Request` – validation error (e.g. `front` or `back` missing/too long).
+  - `400 Bad Request` – validation error (e.g. missing/too-long fields, invalid `source`).
   - `401 Unauthorized` – not logged in.
-  - `422 Unprocessable Entity` – request structurally correct but violates DB constraints.
   - `500 Internal Server Error` – DB error.
 
-##### 2.2.3 GET `/api/flashcards/:id`
+##### 2.1.3 GET `/flashcards/:id`
 
-- **Description**: Get a single flashcard by ID belonging to the current user.
+- **Description**: Get a single flashcard by ID.
 - **Path parameters**:
   - `id`: integer, required.
 - **Response JSON (200)**:
@@ -166,7 +86,7 @@ All flashcard endpoints require authentication and are scoped to the current use
   - `404 Not Found` – flashcard does not exist or does not belong to the user (RLS hides others).
   - `500 Internal Server Error` – DB error.
 
-##### 2.2.4 PATCH `/api/flashcards/:id`
+##### 2.1.4 PATCH `/flashcards/:id`
 
 - **Description**: Update the `front` and/or `back` of an existing flashcard.
 - **Path parameters**:
@@ -176,6 +96,7 @@ All flashcard endpoints require authentication and are scoped to the current use
   - `back`: string, optional, max 500 characters.
 - **Server behavior**:
   - Validates new content lengths.
+  - If source was `ai-full` it should be changed to `ai-edited`.
   - Uses trigger `on_flashcard_update` to update `updated_at` automatically.
 - **Response JSON (200)**:
   - Updated flashcard object (same shape as GET).
@@ -185,10 +106,9 @@ All flashcard endpoints require authentication and are scoped to the current use
   - `400 Bad Request` – no updatable fields or invalid lengths.
   - `401 Unauthorized` – not logged in.
   - `404 Not Found` – flashcard not found or not owned by user.
-  - `422 Unprocessable Entity` – DB constraint violation.
   - `500 Internal Server Error` – DB error.
 
-##### 2.2.5 DELETE `/api/flashcards/:id`
+##### 2.1.5 DELETE `/flashcards/:id`
 
 - **Description**: Delete a flashcard permanently.
 - **Path parameters**:
@@ -204,40 +124,36 @@ All flashcard endpoints require authentication and are scoped to the current use
   - `404 Not Found` – flashcard not found or not owned by user.
   - `500 Internal Server Error` – DB error.
 
----
+#### 2.2 AI-Powered Flashcard Generation
 
-#### 2.3 AI-Powered Flashcard Generation
+##### 2.2.1 POST `/generations`
 
-These endpoints implement PRD features F-02, F-03, F-06 and log data into `generations` and `generation_error_logs`.
-
-##### 2.3.1 POST `/api/flashcards/ai/generate`
-
-- **Description**: Accept user study notes, call OpenRouter LLM to generate flashcard proposals, and (on success/failure) log analytics/error data.
+- **Description**: Generate flashcards proposals using AI, based on user-provided text: call OpenRouter LLM to generate flashcard proposals, and (on success/failure) log analytics/error data.
 - **Request JSON**:
-  - `source_text`: string, required, length 1,000–10,000 characters.
-  - `model`: string, optional, default model ID configured in env (e.g. `"openrouter/your-default-model"`).
+  - `source_text`: string, required, length 1000–10000 characters.
 - **Server behavior**:
   - Validates `source_text` length and returns `400` if outside `[1000, 10000]`.
   - Computes `source_text_hash` (e.g. SHA-256) and `source_text_length`.
-  - Calls OpenRouter API with prompt to generate Q/A pairs.
+  - Calls OpenRouter API with prompt to generate flashcards proposals.
   - On success:
     - Parses proposals into list of `{ front, back }`.
     - Inserts a row into `generations` with:
       - `user_id` = current user.
-      - `model` = chosen model.
+      - `model` = model.
       - `generated_count` = number of proposals.
       - `accepted_unedited_count` = `NULL` initially.
       - `accepted_edited_count` = `NULL` initially.
       - `source_text_hash`, `source_text_length`.
       - `generation_duration` = measured time in ms.
-    - Returns proposals and `generation_id` to the client.
+    - Returns `flashcards_proposals`, `generated_count` and `generation_id` to the client.
   - On LLM error / timeout:
     - Inserts a row into `generation_error_logs` with `user_id`, `model`, `source_text_hash`, `source_text_length`, `error_code`, `error_message`.
     - Returns an error response to the client.
 - **Response JSON (200)** on success:
   - `generation_id`: number.
-  - `proposals`: array of
-    - `{ temp_id: string; front: string; back: string; }`
+  - `flashcards_proposals`: array of
+    - `{ temp_id: string; front: string; back: string; source: "ai-full" }`
+  - `generated_count`: number.
 - **Success**:
   - `200 OK` – proposals returned.
 - **Errors**:
@@ -247,165 +163,71 @@ These endpoints implement PRD features F-02, F-03, F-06 and log data into `gener
   - `502 Bad Gateway` – upstream LLM error (also logged to `generation_error_logs`).
   - `500 Internal Server Error` – internal failure.
 
-##### 2.3.2 POST `/api/flashcards/ai/save`
+##### 2.2.2 GET `/generations`
 
-- **Description**: Save accepted (possibly edited) AI proposals as flashcards and update the corresponding `generations` row with acceptance metrics.
-- **Request JSON**:
-  - `generation_id`: number, required, must refer to an existing `generations` row owned by the user.
-  - `generated_count`: number, required – total proposals originally returned (for consistency check with `generations.generated_count`).
-  - `flashcards`: array of at least one item, each:
-    - `front`: string, required, max 200 characters.
-    - `back`: string, required, max 500 characters.
-    - `source`: string, required, either `'ai-full'` or `'ai-edited'`.
-- **Server behavior**:
-  - Verifies `generation_id` belongs to the current user (RLS + explicit check).
-  - Validates all `front`/`back` lengths and `source` enum.
-  - Checks `generated_count` matches the stored `generations.generated_count`; on mismatch, returns `409 Conflict`.
-  - Inserts one row into `flashcards` per `flashcards[]` item with:
-    - `user_id` = current user.
-    - `generation_id` = `generation_id`.
-    - `source` = provided (`'ai-full'` or `'ai-edited'`).
-  - Updates `generations` row:
-    - `accepted_unedited_count` = number of `flashcards` with `source = 'ai-full'`.
-    - `accepted_edited_count` = number with `source = 'ai-edited'`.
-- **Response JSON (201)**:
-  - `saved_count`: number.
-  - `flashcards`: array of newly created flashcards (same shape as in 2.2.1).
-- **Success**:
-  - `201 Created` – flashcards saved and analytics updated.
-- **Errors**:
-  - `400 Bad Request` – invalid payload, lengths, or `source` values.
-  - `401 Unauthorized` – not logged in.
-  - `403 Forbidden` – `generation_id` does not belong to the user.
-  - `404 Not Found` – `generation_id` not found.
-  - `409 Conflict` – `generated_count` mismatch.
-  - `422 Unprocessable Entity` – DB constraint violation.
-  - `500 Internal Server Error` – DB error.
-
----
-
-#### 2.4 Learning Module
-
-The learning module uses existing `flashcards` data and a simple spaced repetition algorithm implemented in application code (no extra tables).
-
-##### 2.4.1 POST `/api/learning/session`
-
-- **Description**: Start a new learning session for the current user.
-- **Request JSON** (all optional):
-  - `limit`: number, optional, default `30` – maximum number of cards in this session.
-  - `strategy`: string, optional – e.g. `'mixed'` (default), `'oldest-first'`, `'newest-first'`.
-- **Server behavior**:
-  - Fetches candidate flashcards for the user (e.g. all or a capped subset).
-  - Orders them based on chosen `strategy`.
-  - Generates a transient `session_id` and initial queue; session ordering may be returned fully to the client.
+- **Description**: Paginated list of AI generation events for the authenticated user.
+- **Query parameters**:
+  - `page`: integer, optional, default `1`, min `1`.
+  - `limit`: integer, optional, default `10`, max `100`.
+  - `sort`: string, optional, e.g. `created_at` (default).
+  - `order`: string, optional, `asc` or `desc` (default: `desc`).
 - **Response JSON (200)**:
-  - `session_id`: string.
-  - `cards`: array of
-    - `{ card_id: number; front: string; }` – back is revealed client-side by calling another endpoint.
+  - `items`: array of generation objects, each:
+    - `{ id: number; model: string; generated_count: number; accepted_unedited_count: number | null; accepted_edited_count: number | null; source_text_length: number; generation_duration: number; created_at: string; updated_at: string; }`
+  - `pagination`:
+    - `{ page: number; limit: number; total_items: number; total_pages: number; }`
 - **Success**:
-  - `200 OK` – session initialized.
+  - `200 OK` – list returned (possibly empty).
 - **Errors**:
+  - `400 Bad Request` – invalid query parameters.
   - `401 Unauthorized` – not logged in.
   - `500 Internal Server Error` – DB error.
 
-##### 2.4.2 GET `/api/learning/flashcards/:id`
+##### 2.2.3 GET `/generations/:id`
 
-- **Description**: Retrieve full content of a flashcard during a learning session (used when user clicks "Reveal Answer").
+- **Description**: Retrieve detailed information about a specific generation, including associated flashcards.
 - **Path parameters**:
-  - `id`: integer, required – flashcard ID.
+  - `id`: integer, required – generation ID.
 - **Response JSON (200)**:
-  - `{ id: number; front: string; back: string; }`
+  - `generation`:
+    - `{ id: number; model: string; generated_count: number; accepted_unedited_count: number | null; accepted_edited_count: number | null; source_text_length: number; generation_duration: number; created_at: string; updated_at: string;}`
+  - `flashcards`: array of flashcards created from this generation, each:
+    - `{ id: number; front: string; back: string; source: 'ai-full' | 'ai-edited'; generation_id: number; created_at: string; updated_at: string; }`
 - **Success**:
-  - `200 OK` – flashcard returned.
+  - `200 OK` – generation and its flashcards returned.
 - **Errors**:
-  - `400 Bad Request` – invalid ID.
+  - `400 Bad Request` – invalid ID format.
   - `401 Unauthorized` – not logged in.
-  - `404 Not Found` – flashcard not found or not owned by user.
+  - `404 Not Found` – generation not found or not owned by user.
   - `500 Internal Server Error` – DB error.
 
-##### 2.4.3 POST `/api/learning/session/:session_id/feedback`
+##### 2.2.4 GET `/generation-error-logs`
 
-- **Description**: Submit self-assessment for a studied flashcard and receive the next card for this session.
-- **Path parameters**:
-  - `session_id`: string, required.
-- **Request JSON**:
-  - `card_id`: number, required.
-  - `grade`: string, required – e.g. `'again' | 'hard' | 'good' | 'easy'`.
-- **Server behavior**:
-  - Validates that `card_id` belongs to current user.
-  - Applies a simple spaced repetition decision rule to compute next `card_id` to serve in this session.
-  - Session state can be maintained client-side (recommended for MVP) or via short-lived server state (e.g. in-memory cache); no extra DB schema required.
-- **Response JSON (200)**:
-  - `next_card`: `{ card_id: number; front: string; } | null` – `null` if session complete.
-- **Success**:
-  - `200 OK` – feedback accepted and next card computed.
-- **Errors**:
-  - `400 Bad Request` – invalid payload.
-  - `401 Unauthorized` – not logged in.
-  - `404 Not Found` – card missing or not owned by user.
-  - `410 Gone` – session expired (optional behavior).
-  - `500 Internal Server Error` – internal error.
+Typically used internally or by admin users
 
----
-
-#### 2.5 Internal Analytics (optional, internal / admin)
-
-These endpoints expose aggregated metrics as described in the PRD. They should be protected by stricter authorization (e.g. admin role) in addition to regular authentication.
-
-##### 2.5.1 GET `/api/admin/analytics/ai-acceptance`
-
-- **Description**: Returns AI-generated flashcard acceptance rate (SM-01) and related statistics.
-- **Query parameters** (optional):
-  - `from`: ISO datetime string – start of period.
-  - `to`: ISO datetime string – end of period.
-- **Response JSON (200)**:
-  - `time_range`: `{ from: string | null; to: string | null; }`
-  - `totals`:
-    - `proposed`: number – sum of `generations.generated_count`.
-    - `accepted_unedited`: number – sum of `accepted_unedited_count`.
-    - `accepted_edited`: number – sum of `accepted_edited_count`.
-    - `accepted_total`: number.
-    - `acceptance_rate`: number – `(accepted_total / proposed) * 100`.
-- **Success**:
-  - `200 OK` – analytics returned.
+- **Description**: Retrieve error logs for AI flashcard generation for the authenticated user or admin.
+- **Response JSON**: List of error log objects.
 - **Errors**:
   - `401 Unauthorized` – not logged in.
-  - `403 Forbidden` – user not admin.
+  - `403 Forbidden` – if access is restricted to admin users.
   - `500 Internal Server Error` – DB error.
-
-##### 2.5.2 GET `/api/admin/analytics/ai-adoption`
-
-- **Description**: Returns AI adoption rate (SM-02) based on `flashcards.source`.
-- **Response JSON (200)**:
-  - `totals`:
-    - `total_flashcards`: number.
-    - `ai_generated`: number – count where `source` in (`'ai-full'`, `'ai-edited'`).
-    - `manual`: number – count where `source = 'manual'`.
-    - `ai_adoption_rate`: number – `(ai_generated / total_flashcards) * 100`.
-- **Success**:
-  - `200 OK` – analytics returned.
-- **Errors**:
-  - `401 Unauthorized` – not logged in.
-  - `403 Forbidden` – user not admin.
-  - `500 Internal Server Error` – DB error.
-
----
 
 ### 3. Authentication and Authorization
 
 - **Authentication mechanism**:
-  - Supabase Auth (email/password) with JWT-based sessions.
+  - Supabase Auth (email/password) with JWT-based sessions (user authenticates via `/auth/login` or `/auth/register`, receiving a bearer token).
+    - Clients authenticate via Authorization header (`Bearer <access_token>`).
   - Astro API routes use `Astro.locals.supabase` (Supabase client bound to the request) to identify the current user and interact with the DB and Auth APIs.
-  - Clients authenticate via Authorization header (`Bearer <access_token>`) or secure HTTP-only cookies.
 
 - **Authorization model**:
   - PostgreSQL Row-Level Security (RLS) is enabled on `flashcards`, `generations`, and `generation_error_logs` with policies `users.id = user_id`.
   - All application queries use the authenticated Supabase client, ensuring RLS is enforced automatically.
   - Flashcard, generation, and error-log endpoints do **not** accept `user_id` in the payload; the backend derives it from the authenticated session.
+  - Protected endpoints require the token in the `Authorization` header.
   - Admin analytics endpoints additionally require an `admin` role/claim (e.g. via Supabase custom claims or a separate `is_admin` mapping), validated in the API route.
 
 - **Rate limiting & abuse protection**:
-  - AI generation endpoints (`/api/flashcards/ai/generate`, `/api/flashcards/ai/save`) are protected by per-user and per-IP rate limits (e.g. using middleware / edge functions):
+  - AI generation endpoint is protected by per-user and per-IP rate limits (e.g. using middleware / edge functions):
     - Example: max 30 generation requests per user per hour; max 5 per minute per IP.
   - General API rate limiting at a coarser level (e.g. 100 requests per 15 minutes per IP) can be applied at the reverse proxy or middleware layer.
   - 429 responses include a `Retry-After` header where appropriate.
@@ -422,24 +244,18 @@ These endpoints expose aggregated metrics as described in the PRD. They should b
 
 #### 4.1 Validation Conditions per Resource
 
-**User / Auth**
-
-- `email` must be a valid email format.
-- `password` and `new_password` must satisfy password policy (minimum length, recommended complexity rules).
-- Account deletion requires explicit confirmation string `"DELETE"`.
-
 **Flashcards** (`flashcards` table)
 
 - `front`: required, non-empty, max 200 characters.
 - `back`: required, non-empty, max 500 characters.
 - `source`: required, must be one of `('ai-full', 'ai-edited', 'manual')`.
-- `generation_id`: optional; if set, must reference an existing `generations.id` row belonging to the same user (enforced by RLS + foreign key).
+- `generation_id`: integer or null, required if source is `ai-full` or `ai-edited`, must be null for `manual` source; when set, must reference an existing `generations.id` for this user.
 - `user_id`: never taken from client; always populated from authenticated user.
 
 **Generations** (`generations` table)
 
 - `user_id`: required, from authentication.
-- `model`: required, non-empty string, must be one of allowed model IDs configured in the backend.
+- `model`: required, non-empty string.
 - `generated_count`: required, integer ≥ 0.
 - `accepted_unedited_count`: nullable, when set must be integer ≥ 0 and ≤ `generated_count`.
 - `accepted_edited_count`: nullable, when set must be integer ≥ 0 and `accepted_unedited_count + accepted_edited_count ≤ generated_count`.
@@ -459,35 +275,25 @@ These endpoints expose aggregated metrics as described in the PRD. They should b
 #### 4.2 Business Logic Mapping
 
 - **AI Flashcard Generation (F-02, US-006, US-007)**:
-  - `/api/flashcards/ai/generate` implements text submission, LLM call, proposal display, error handling, and `generations` + `generation_error_logs` logging.
-  - `/api/flashcards/ai/save` implements the accept/edit/save flow, creation of `flashcards` rows, and updates `accepted_unedited_count` / `accepted_edited_count`.
+  - `POST /generations` accepts the user’s study text, calls the LLM via OpenRouter to generate flashcards proposals, and logs each generation event in the `generations` table. On failures it logs errors into `generation_error_logs`.
+  - `POST /flashcards` allows saving accepted unchanged or edited flashcards proposals from a given `generation_id`.
+  - `GET /generations` and `GET /generations/:id` expose generation history and details (including which flashcards came from which generation) to support internal analytics and debugging.
+  - `GET /generation-error-logs` provides access to recorded generation failures for debugging and basic error analytics.
 
 - **Manual Flashcard Creation (F-03, US-008)**:
-  - `/api/flashcards` (POST) allows manual add with validation on `front` (≤ 200 chars) and `back` (≤ 500 chars), marking `source = 'manual'`.
+  - `POST /flashcards` allows saving manually created flashcards.
 
 - **Flashcard Management (F-04, US-009–US-012)**:
-  - `/api/flashcards` (GET) provides paginated listing and simple search (`q` against `front` and `back`).
-  - `/api/flashcards/:id` (GET) shows full flashcard.
-  - `/api/flashcards/:id` (PATCH) edits content.
-  - `/api/flashcards/:id` (DELETE) deletes flashcards.
-
-- **Learning Module (F-05, US-013–US-015)**:
-  - `/api/learning/session` starts a learning session and returns a sequence of cards.
-  - `/api/learning/flashcards/:id` reveals full front/back during a session.
-  - `/api/learning/session/:session_id/feedback` records per-card feedback (grade) and computes the next card, encapsulating spaced repetition logic.
+  - `GET /flashcards` provides a paginated, searchable list of the user’s flashcards.
+  - `GET /flashcards/:id` returns full details of a single flashcard for viewing.
+  - `PATCH /flashcards/:id` supports editing `front` and/or `back`.
+  - `DELETE /flashcards/:id` removes a flashcard from the user’s collection.
 
 - **Internal Analytics (F-06, SM-01, SM-02)**:
-  - `generations` + `flashcards` tables serve as the source of truth for AI acceptance/adoption metrics.
-  - `/api/admin/analytics/ai-acceptance` and `/api/admin/analytics/ai-adoption` expose these metrics for internal dashboards.
-
-#### 4.3 Error Handling Strategy
-
-- All endpoints return structured error JSON:
-  - `error`: machine-readable error code string (e.g. `"validation_error"`, `"unauthorized"`, `"rate_limited"`).
-  - `message`: human-readable explanation (safe for UI display).
-  - `details`: optional, structured field-level errors for validation issues.
-- Business-rule violations (e.g. invalid state transitions or mismatched `generated_count`) return `409 Conflict` or `422 Unprocessable Entity` with clear messages.
-- LLM-related errors are always logged in `generation_error_logs` and surfaced as `502` or `500` with generic messages to avoid leaking upstream details.
+  - The `generations` table, combined with `flashcards.source`, is the source of truth for computing:
+    - AI-generated flashcard acceptance rate (from `generated_count`, `accepted_unedited_count`, `accepted_edited_count`).
+    - AI adoption rate (share of flashcards where `source` is `ai-full` or `ai-edited` vs. `manual`).
+  - These metrics can be computed in reporting queries or dashboards without dedicated public API endpoints in the current scope.
 
 ---
 
