@@ -51,11 +51,12 @@ All data access is scoped to the authenticated user via Supabase Auth and Postgr
 
 - **Description**: Create one or more flashcards (manual or AI-generated) for the current user.
 - **Request JSON**:
-  - An array of flashcard objects, each:
-    - `front`: string, required, max 200 characters.
-    - `back`: string, required, max 500 characters.
-    - `source`: string, required, one of `'ai-full'`, `'ai-edited'`, `'manual'`.
-    - `generation_id`: integer or null, required if source is `ai-full` or `ai-edited`, must be null for `manual` source; when set, must reference an existing `generations.id` for this user.
+  - An object:
+    - `flashcards`: array of flashcard objects, each:
+      - `front`: string, required, max 200 characters.
+      - `back`: string, required, max 500 characters.
+      - `source`: string, required, one of `'ai-full'`, `'ai-edited'`, `'manual'`.
+      - `generation_id`: integer or null, required if source is `ai-full` or `ai-edited`, must be null for `manual` source; when set, must reference an existing `generations.id` for this user.
 - **Server behavior**:
   - Iterates over the array and validates each flashcard.
   - Uses the authenticated user as `user_id` for all inserted rows; `user_id` is never taken from the request body.
