@@ -30,16 +30,16 @@ Route map:
 ### 2.2 Flashcards Generation
 
 - **Path**: `/generate`
-- **Purpose**: Accept study text and generate AI flashcard proposals. Then allows for reviewing generated proposals and saving accepted ones as flashcards.
+- **Purpose**: Accept source text and generate AI flashcard proposals. Then allows for reviewing generated proposals and saving accepted ones as flashcards.
 - **Key info**: allows to input a source text for flashcard generation, lists generated flashcard proposals (front/back pairs) for review.
-- **Key components**: Source text textarea with live counter (green 1000-10000, red otherwise), Generate action button, the list of proposal cards each with Accept / Edit / Reject / Restore buttons, modal dialog for editing a proposal, a control bar with Save accepted, Save all, and Reset buttons, blocking loading overlay during generation or save operations, inline error messagges for generating or saving errors.
+- **Key components**: Source text `textarea` with live counter (green 1000-10000, red otherwise), `Generate` button, the list of proposal cards each with `Accept`, `Edit`, `Reject` buttons, modal dialog for editing a proposal, a control bar with `Save accepted`, `Save all` (all non-rejected), and `Reset` (discards proposals, resets the view) buttons, blocking loading overlay during generation or save operations, inline error messagges for generating or saving errors.
 - **UX / accessibility / security**:
   - Disable Generate button until valid 1000–10000 char range in textarea.
   - Loader overlay blocks interactivity during generation or save operations.
   - Clear inline error messages for mentioned async operations.
   - List of proposal cards follow responsive grid (1–4 cols).
   - On successful save redirect to `/flashcards`.
-- **Mapped requirements**: F-02, US-006–US-007, decisions 3–5.
+- **Mapped requirements**: F-02, US-006–US-007.
 
 ### 2.3 Flashcards Management
 
@@ -108,7 +108,7 @@ Route map:
 - Authentication forms for login and registration with validation feedback.
 - Global navigation bar linking generation, flashcards management, learning session, and user panel views.
 - Source text input area with live character counter for AI flashcard generation.
-- Flashcard proposals list where each proposal can be accepted, edited, rejected, or restored.
+- Flashcard proposals list where each proposal can be accepted, edited, or rejected.
 - Flashcards list with pagination, search, and actions to edit or delete individual cards.
 - Modal dialogs for creating or editing flashcards.
 - Modal dialogs for confirming destructive actions.
