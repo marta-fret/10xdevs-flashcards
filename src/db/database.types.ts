@@ -1,6 +1,3 @@
-// > 10xdevs-flashcards@0.0.1 supabase
-// > supabase gen types typescript --local
-
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
@@ -141,9 +138,39 @@ export interface Database {
       };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      create_flashcards: {
+        Args: {
+          p_flashcards: Database["public"]["CompositeTypes"]["flashcard_input"][];
+          p_user_id: string;
+        };
+        Returns: {
+          back: string;
+          created_at: string;
+          front: string;
+          generation_id: number | null;
+          id: number;
+          source: string;
+          updated_at: string;
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "flashcards";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+    };
     Enums: Record<never, never>;
-    CompositeTypes: Record<never, never>;
+    CompositeTypes: {
+      flashcard_input: {
+        front: string | null;
+        back: string | null;
+        source: string | null;
+        generation_id: number | null;
+      };
+    };
   };
 }
 

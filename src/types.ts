@@ -60,8 +60,9 @@ export interface FlashcardsListResponseDto {
 
 // Command model item for POST /flashcards.
 // Derived from Insert row: user_id, id, timestamps are server-controlled.
-export type CreateFlashcardCommandItem = Pick<FlashcardInsertRow, "front" | "back" | "generation_id"> & {
+export type CreateFlashcardCommandItem = Pick<FlashcardInsertRow, "front" | "back"> & {
   source: FlashcardSource;
+  generation_id: Exclude<FlashcardInsertRow["generation_id"], undefined>;
 };
 
 // Command model for POST /flashcards body.
