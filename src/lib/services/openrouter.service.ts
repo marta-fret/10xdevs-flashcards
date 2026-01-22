@@ -47,11 +47,25 @@ export class OpenRouterService {
   systemMessage: string | null = null;
   responseFormat: OpenRouterResponseFormat | null = null;
   _model: string;
-  _modelParams: OpenRouterModelParams;
+  _modelParams: OpenRouterModelParams = {
+    temperature: 0.7,
+    top_p: 1,
+    frequency_penalty: 0,
+    presence_penalty: 0,
+  };
 
   constructor(config: OpenRouterServiceConfig) {
+    this.logger = new OpenRouterLogger();
+
     const result = OpenRouterServiceConfigSchema.safeParse(config);
     if (!result.success) {
+      this.logger.error("Invalid OpenRouter configuration", {
+        config: {
+          ...config,
+          apiKey: "[REDACTED]",
+        },
+      });
+
       throw new OpenRouterServiceError(
         "CONFIG_ERROR",
         "Invalid OpenRouter configuration",
@@ -64,9 +78,8 @@ export class OpenRouterService {
     this.apiKey = validConfig.apiKey;
     this.apiUrl = validConfig.apiUrl || "https://openrouter.ai/api";
     this._model = validConfig.model;
-    this._modelParams = validConfig.modelParams;
+    this._modelParams = validConfig.modelParams || this._modelParams;
     this.timeoutMs = validConfig.timeoutMs || 30_000;
-    this.logger = new OpenRouterLogger();
   }
 
   public get model(): string {

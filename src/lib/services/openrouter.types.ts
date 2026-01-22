@@ -55,7 +55,7 @@ export interface OpenRouterServiceConfig {
   apiKey: string;
   apiUrl?: string;
   model: string;
-  modelParams: OpenRouterModelParams;
+  modelParams?: OpenRouterModelParams;
   timeoutMs?: number;
 }
 
@@ -96,6 +96,6 @@ export const OpenRouterServiceConfigSchema = z.object({
   apiKey: z.string().min(1, "API key is required"),
   apiUrl: z.string().url().optional(),
   model: z.string().min(1, "Model name is required"),
-  modelParams: OpenRouterModelParamsSchema,
+  modelParams: OpenRouterModelParamsSchema.optional(),
   timeoutMs: z.number().positive().optional(),
 });
