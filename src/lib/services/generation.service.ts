@@ -6,33 +6,62 @@ import type {
   FlashcardProposalDto,
   GenerationErrorLogDto,
 } from "../../types";
-
-export class OpenRouterError extends Error {
-  public readonly code: string;
-
-  constructor(message: string, code = "upstream_error") {
-    super(message);
-    this.name = "OpenRouterError";
-    this.code = code;
-  }
-}
+import { OpenRouterService } from "./openrouter.service";
+import { OpenRouterServiceError, type OpenRouterResponseFormat } from "./openrouter.types";
 
 export interface GenerateFlashcardProposalsParams extends CreateGenerationCommand {
   userId: string;
 }
 
+const FLASHCARDS_RESPONSE_SCHEMA: OpenRouterResponseFormat = {
+  type: "json_schema",
+  json_schema: {
+    name: "flashcards_response",
+    schema: {
+      type: "object",
+      properties: {
+        flashcards: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              front: { type: "string", description: "Front of the flashcard" },
+              back: { type: "string", description: "Back of the flashcard" },
+            },
+            required: ["front", "back"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["flashcards"],
+      additionalProperties: false,
+    },
+  },
+};
+
 export class GenerationService {
   private readonly supabase: SupabaseClient;
   private readonly model = "openai/gpt-4o-mini" as const;
-  private readonly timeoutMs = 60_000;
-  private readonly useRealOpenRouter = false;
+  private readonly openRouter: OpenRouterService;
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
+
+    const apiKey = import.meta.env.OPENROUTER_API_KEY || "";
+
+    this.openRouter = new OpenRouterService({
+      apiKey,
+      model: this.model,
+    });
+
+    this.openRouter.setSystemMessage(
+      "You are a helpful assistant that generates flashcards from provided text. " +
+        "Extract key concepts and facts. Create clear, concise questions and answers. " +
+        "Return the output in JSON format with a 'flashcards' array."
+    );
+    this.openRouter.setResponseFormat(FLASHCARDS_RESPONSE_SCHEMA);
   }
 
-  // NOTE: For now this method uses a mocked LLM call.
-  // In a later iteration we will replace the mock with a real OpenRouter HTTP request.
   async generateFlashcardProposals(params: GenerateFlashcardProposalsParams): Promise<CreateGenerationResponseDto> {
     const { source_text, userId } = params;
 
@@ -40,18 +69,13 @@ export class GenerationService {
 
     let proposals: FlashcardProposalDto[];
 
-    if (this.useRealOpenRouter) {
-      try {
-        proposals = await this.callOpenRouter(source_text);
-      } catch (error) {
-        if (error instanceof OpenRouterError) {
-          await this.logOpenRouterError({ userId, source_text, error });
-        }
-
-        throw error;
+    try {
+      proposals = await this.callOpenRouter(source_text);
+    } catch (error) {
+      if (error instanceof OpenRouterServiceError) {
+        await this.storeOpenRouterError({ userId, source_text, error });
       }
-    } else {
-      proposals = await this.generateMockProposals(source_text);
+      throw error;
     }
 
     const durationMs = Math.round(performance.now() - startedAt);
@@ -86,41 +110,38 @@ export class GenerationService {
     return createHash("md5").update(source_text, "utf8").digest("hex");
   }
 
-  private async logError(payload: Omit<GenerationErrorLogDto, "id" | "created_at">): Promise<void> {
+  private async storeError(payload: Omit<GenerationErrorLogDto, "id" | "created_at">): Promise<void> {
     const { error } = await this.supabase.from("generation_error_logs").insert(payload);
     if (error) {
       // Intentionally swallow error to avoid masking the original failure.
       // In a real-world setup we might forward this to an external logger.
+      // eslint-disable-next-line no-console
+      console.error("Failed to store generation error:", error);
     }
   }
 
-  private async generateMockProposals(sourceText: string): Promise<FlashcardProposalDto[]> {
-    // Simulate upstream latency so that the caller can be exercised with async behaviour.
-    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  private async callOpenRouter(sourceText: string): Promise<FlashcardProposalDto[]> {
+    const { parsedJson } = await this.openRouter.chat({
+      userMessage: `Generate flashcards from the following text:\n\n${sourceText}`,
+    });
 
-    const proposals: FlashcardProposalDto[] = [
-      {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (parsedJson as any).flashcards.map((card: any) => ({
         temp_id: crypto.randomUUID(),
-        front: "Example question generated from source text",
-        back: `Example answer based on the provided source text (length: ${sourceText.length} characters).`,
+        front: card.front,
+        back: card.back,
         source: "ai-full",
-      },
-    ];
-
-    return proposals;
+      }));
+    } catch {
+      throw new OpenRouterServiceError("BAD_RESPONSE", "Invalid response structure");
+    }
   }
 
-  private async callOpenRouter(_sourceText: string): Promise<FlashcardProposalDto[]> {
-    // Real OpenRouter integration will be implemented in a future iteration.
-    // For now this method is intentionally disabled and will only be
-    // reachable once `useRealOpenRouter` is set to true.
-    throw new OpenRouterError("Real OpenRouter integration is not enabled in this environment.");
-  }
-
-  private async logOpenRouterError(params: {
+  private async storeOpenRouterError(params: {
     userId: string;
     source_text: string;
-    error: OpenRouterError;
+    error: OpenRouterServiceError;
   }): Promise<void> {
     const { userId, source_text, error } = params;
 
@@ -137,6 +158,6 @@ export class GenerationService {
       error_message: truncatedMessage,
     };
 
-    await this.logError(payload);
+    await this.storeError(payload);
   }
 }

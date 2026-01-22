@@ -2,7 +2,8 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import type { CreateGenerationCommand } from "../../types";
 import { DEFAULT_USER_ID, type SupabaseClient } from "../../db/supabase.client";
-import { GenerationService, OpenRouterError } from "../../lib/services/generation.service";
+import { GenerationService } from "../../lib/services/generation.service";
+import { OpenRouterServiceError } from "../../lib/services/openrouter.types";
 
 const createGenerationCommandSchema = z.object({
   source_text: z
@@ -11,7 +12,7 @@ const createGenerationCommandSchema = z.object({
     .max(10000, "source_text must be between 1000 and 10000 characters"),
 });
 
-type ErrorCode = "invalid_request" | "unauthorized" | "upstream_error" | "internal_error";
+type ErrorCode = "invalid_request" | "unauthorized" | "upstream_error" | "internal_error" | "service_unavailable";
 
 interface ErrorResponseBody {
   error: ErrorCode;
@@ -74,10 +75,31 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     return jsonResponse(result);
   } catch (error) {
-    if (error instanceof OpenRouterError) {
-      return errorResponse("upstream_error", "Upstream AI provider error", 502);
+    if (error instanceof OpenRouterServiceError) {
+      switch (error.code) {
+        case "RATE_LIMITED":
+          return errorResponse(
+            "service_unavailable",
+            "AI service is currently rate limited. Please try again later.",
+            429
+          );
+        case "TIMEOUT":
+        case "NETWORK_ERROR":
+        case "UPSTREAM_ERROR":
+        case "BAD_RESPONSE":
+          return errorResponse("upstream_error", "AI service provider error", 502);
+        case "AUTH_ERROR":
+        case "CONFIG_ERROR":
+          return errorResponse("internal_error", "AI service configuration error", 500);
+        case "VALIDATION_ERROR":
+        default:
+          return errorResponse("internal_error", "Internal server error during generation", 500);
+      }
     }
 
+    const message = error && typeof error === "object" && "message" in error ? error.message : "unknown";
+    // eslint-disable-next-line no-console
+    console.error("[API] Unhandled generation error:", message);
     return errorResponse("internal_error", "Internal server error", 500);
   }
 };
