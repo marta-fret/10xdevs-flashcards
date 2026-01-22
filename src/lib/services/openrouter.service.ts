@@ -39,7 +39,7 @@ export class OpenRouterService {
 
     const validConfig = result.data;
     this.apiKey = validConfig.apiKey;
-    this.apiUrl = validConfig.apiUrl || "https://openrouter.ai/api";
+    this.apiUrl = validConfig.apiUrl || "https://openrouter.ai/api/v1";
     this._model = validConfig.model;
     this._modelParams = validConfig.modelParams || this._modelParams;
     this.timeoutMs = validConfig.timeoutMs || 30_000;
