@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { CreateGenerationCommand } from "../../types";
 import { DEFAULT_USER_ID, type SupabaseClient } from "../../db/supabase.client";
 import { GenerationService } from "../../lib/services/generation.service";
-import { OpenRouterServiceError } from "../../lib/services/openrouter.types";
+import { OpenRouterServiceError } from "../../lib/services/openrouter.service.error";
 
 const createGenerationCommandSchema = z.object({
   source_text: z

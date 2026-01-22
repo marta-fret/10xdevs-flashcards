@@ -1,23 +1,22 @@
 import {
-  type Logger,
   type OpenRouterChatOptions,
   type OpenRouterChatResult,
   type OpenRouterModelParams,
   type OpenRouterResponseFormat,
   type OpenRouterServiceConfig,
   OpenRouterServiceConfigSchema,
-  OpenRouterServiceError,
   type OpenRouterChatMessage,
   OpenRouterModelParamsSchema,
   type OpenRouterRequestBody,
 } from "./openrouter.types";
 import { OpenRouterLogger } from "./openrouter.service.logger";
+import { OpenRouterServiceError } from "./openrouter.service.error";
 
 export class OpenRouterService {
   apiKey: string;
   apiUrl: string;
   timeoutMs: number;
-  logger: Logger;
+  logger: OpenRouterLogger;
   systemMessage: string | null = null;
   responseFormat: OpenRouterResponseFormat | null = null;
   _model: string;
@@ -35,12 +34,7 @@ export class OpenRouterService {
     if (!result.success) {
       this.logger.error("Invalid OpenRouter configuration", { config });
 
-      throw new OpenRouterServiceError(
-        "CONFIG_ERROR",
-        "Invalid OpenRouter configuration",
-        undefined,
-        result.error.flatten()
-      );
+      throw new OpenRouterServiceError("CONFIG_ERROR", "Invalid OpenRouter configuration");
     }
 
     const validConfig = result.data;
@@ -64,6 +58,7 @@ export class OpenRouterService {
    */
   public async chat(options: OpenRouterChatOptions): Promise<OpenRouterChatResult> {
     if (!options.userMessage || options.userMessage.trim() === "") {
+      this.logger.error("User message cannot be empty");
       throw new OpenRouterServiceError("VALIDATION_ERROR", "User message cannot be empty");
     }
 
@@ -78,12 +73,8 @@ export class OpenRouterService {
       if (error instanceof OpenRouterServiceError) {
         throw error;
       }
-      throw new OpenRouterServiceError(
-        "UNKNOWN",
-        error instanceof Error ? error.message : "Unknown error occurred",
-        undefined,
-        error
-      );
+      this.logger.error("Unknown error in chat", { error });
+      throw new OpenRouterServiceError("UNKNOWN", error instanceof Error ? error.message : "Unknown error occurred");
     }
   }
 
@@ -94,6 +85,7 @@ export class OpenRouterService {
   public setResponseFormat(responseFormat: OpenRouterResponseFormat | null): void {
     if (responseFormat) {
       if (!responseFormat.json_schema?.name || !responseFormat.json_schema?.schema) {
+        this.logger.error("Invalid response format", { responseFormat });
         throw new OpenRouterServiceError("VALIDATION_ERROR", "Invalid response format: missing name or schema");
       }
     }
@@ -103,6 +95,7 @@ export class OpenRouterService {
   public configureModel(config: { model?: string; params?: OpenRouterModelParams }): void {
     if (config.model !== undefined) {
       if (typeof config.model !== "string" || config.model.trim() === "") {
+        this.logger.error("Model name must be a non-empty string", { model: config.model });
         throw new OpenRouterServiceError("VALIDATION_ERROR", "Model name must be a non-empty string");
       }
       this._model = config.model;
@@ -111,12 +104,8 @@ export class OpenRouterService {
     if (config.params) {
       const result = OpenRouterModelParamsSchema.safeParse(config.params);
       if (!result.success) {
-        throw new OpenRouterServiceError(
-          "VALIDATION_ERROR",
-          "Invalid model parameters",
-          undefined,
-          result.error.flatten()
-        );
+        this.logger.error("Invalid model parameters", { params: config.params, error: result.error });
+        throw new OpenRouterServiceError("VALIDATION_ERROR", "Invalid model parameters");
       }
       this._modelParams = result.data;
     }
@@ -175,13 +164,19 @@ export class OpenRouterService {
           errorBody = await response.text();
         }
 
+        const meta = { status: response.status, statusText: response.statusText, body: errorBody };
+
         if (response.status === 401 || response.status === 403) {
-          throw new OpenRouterServiceError("AUTH_ERROR", "Authentication failed", response.status, errorBody);
+          this.logger.error("Authentication failed", meta);
+          throw new OpenRouterServiceError("AUTH_ERROR", "Authentication failed", response.status);
         }
         if (response.status === 429) {
-          throw new OpenRouterServiceError("RATE_LIMITED", "Rate limit exceeded", response.status, errorBody);
+          this.logger.error("Rate limit exceeded", meta);
+          throw new OpenRouterServiceError("RATE_LIMITED", "Rate limit exceeded", response.status);
         }
-        throw new OpenRouterServiceError("UPSTREAM_ERROR", "OpenRouter API error", response.status, errorBody);
+
+        this.logger.error("OpenRouter API error", meta);
+        throw new OpenRouterServiceError("UPSTREAM_ERROR", "OpenRouter API error", response.status);
       }
 
       return await response.json();
@@ -189,10 +184,12 @@ export class OpenRouterService {
       if (error instanceof OpenRouterServiceError) throw error;
 
       if (error instanceof DOMException && error.name === "AbortError") {
-        throw new OpenRouterServiceError("TIMEOUT", "Request timed out", undefined, error);
+        this.logger.error("Request timed out", { error });
+        throw new OpenRouterServiceError("TIMEOUT", "Request timed out");
       }
 
-      throw new OpenRouterServiceError("NETWORK_ERROR", "Network request failed", undefined, error);
+      this.logger.error("Network request failed", { error });
+      throw new OpenRouterServiceError("NETWORK_ERROR", "Network request failed");
     } finally {
       clearTimeout(timeoutId);
     }
@@ -211,19 +208,16 @@ export class OpenRouterService {
       !response.choices[0].message
     ) {
       this.logger.error("Invalid response structure from OpenRouter", { raw });
-      throw new OpenRouterServiceError("BAD_RESPONSE", "Invalid response structure from OpenRouter", undefined, raw);
+      throw new OpenRouterServiceError("BAD_RESPONSE", "Invalid response structure from OpenRouter");
     }
 
     const content = response.choices[0].message.content;
     if (typeof content !== "string") {
       this.logger.error("Missing content in OpenRouter response", { raw });
-      throw new OpenRouterServiceError("BAD_RESPONSE", "Missing content in response", undefined, raw);
+      throw new OpenRouterServiceError("BAD_RESPONSE", "Missing content in response");
     }
 
-    return {
-      rawText: content,
-      rawResponse: raw,
-    };
+    return { rawText: content };
   }
 
   private parseJsonIfNeeded(
@@ -231,14 +225,14 @@ export class OpenRouterService {
     responseFormat?: OpenRouterResponseFormat | null
   ): OpenRouterChatResult {
     if (!responseFormat || responseFormat.type !== "json_schema") {
-      return result;
+      return {
+        ...result,
+        parsedJson: undefined,
+      };
     }
 
     try {
       const parsed = JSON.parse(result.rawText);
-      // Optional: Validate against schema using Ajv or Zod if we had the schema object compiled.
-      // For now, we just trust the JSON parse as per plan instructions (step 6.1.10 says optional, 6.2.10 says if using Zod transform).
-      // The plan 6.2.8 says "Attach parse error details".
       return {
         ...result,
         parsedJson: parsed,
@@ -248,10 +242,8 @@ export class OpenRouterService {
         text: result.rawText,
         error,
       });
-      // The plan says "Attach parse error details; caller can decide whether to fall back to raw text."
-      // But 6.2.10 says throw VALIDATION_ERROR.
-      // Let's follow 6.2.8/9: JSON parse errors -> BAD_RESPONSE.
-      throw new OpenRouterServiceError("BAD_RESPONSE", "Failed to parse JSON response", undefined, error);
+
+      throw new OpenRouterServiceError("BAD_RESPONSE", "Failed to parse JSON response");
     }
   }
 }

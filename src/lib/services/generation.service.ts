@@ -7,7 +7,8 @@ import type {
   GenerationErrorLogDto,
 } from "../../types";
 import { OpenRouterService } from "./openrouter.service";
-import { OpenRouterServiceError, type OpenRouterResponseFormat } from "./openrouter.types";
+import { type OpenRouterResponseFormat } from "./openrouter.types";
+import { OpenRouterServiceError } from "./openrouter.service.error";
 
 export interface GenerateFlashcardProposalsParams extends CreateGenerationCommand {
   userId: string;
@@ -134,6 +135,8 @@ export class GenerationService {
         source: "ai-full",
       }));
     } catch {
+      // eslint-disable-next-line no-console
+      console.error("Invalid response structure from OpenRouter", { parsedJson });
       throw new OpenRouterServiceError("BAD_RESPONSE", "Invalid response structure");
     }
   }

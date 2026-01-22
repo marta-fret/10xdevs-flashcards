@@ -28,10 +28,11 @@ export interface OpenRouterChatOptions {
   abortController?: AbortController;
 }
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
 export interface OpenRouterChatResult {
   rawText: string;
-  rawResponse: unknown;
-  parsedJson?: unknown;
+  parsedJson?: JsonValue;
 }
 
 export interface OpenRouterRequestBody extends OpenRouterModelParams {
@@ -57,30 +58,6 @@ export interface OpenRouterServiceConfig {
   model: string;
   modelParams?: OpenRouterModelParams;
   timeoutMs?: number;
-}
-
-export interface Logger {
-  debug(message: string, meta?: unknown): void;
-  info(message: string, meta?: unknown): void;
-  warn(message: string, meta?: unknown): void;
-  error(message: string, meta?: unknown): void;
-}
-
-export class OpenRouterServiceError extends Error {
-  public readonly code: OpenRouterErrorCode;
-  public readonly status?: number;
-  public readonly details?: unknown;
-
-  constructor(code: OpenRouterErrorCode, message: string, status?: number, details?: unknown) {
-    super(message);
-    this.name = "OpenRouterServiceError";
-    this.code = code;
-    this.status = status;
-    this.details = details;
-
-    // Restore prototype chain for instanceof checks
-    Object.setPrototypeOf(this, OpenRouterServiceError.prototype);
-  }
 }
 
 // Zod schemas for validation

@@ -1,9 +1,7 @@
-import { type Logger } from "./openrouter.types";
-
 /**
  * Simple logger implementation that wraps console and sanitizes sensitive data
  */
-export class OpenRouterLogger implements Logger {
+export class OpenRouterLogger {
   private sensitiveKeys: Set<string>;
 
   constructor(additionalSensitiveKeys: string[] = []) {
