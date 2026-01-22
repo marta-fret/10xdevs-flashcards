@@ -11,33 +11,7 @@ import {
   OpenRouterModelParamsSchema,
   type OpenRouterRequestBody,
 } from "./openrouter.types";
-
-/**
- * Simple logger implementation that wraps console
- */
-class OpenRouterLogger implements Logger {
-  debug(message: string, meta?: unknown): void {
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.debug(`[OpenRouter] ${message}`, meta);
-    }
-  }
-
-  info(message: string, meta?: unknown): void {
-    // eslint-disable-next-line no-console
-    console.info(`[OpenRouter] ${message}`, meta);
-  }
-
-  warn(message: string, meta?: unknown): void {
-    // eslint-disable-next-line no-console
-    console.warn(`[OpenRouter] ${message}`, meta);
-  }
-
-  error(message: string, meta?: unknown): void {
-    // eslint-disable-next-line no-console
-    console.error(`[OpenRouter] ${message}`, meta);
-  }
-}
+import { OpenRouterLogger } from "./openrouter.service.logger";
 
 export class OpenRouterService {
   apiKey: string;
@@ -59,12 +33,7 @@ export class OpenRouterService {
 
     const result = OpenRouterServiceConfigSchema.safeParse(config);
     if (!result.success) {
-      this.logger.error("Invalid OpenRouter configuration", {
-        config: {
-          ...config,
-          apiKey: "[REDACTED]",
-        },
-      });
+      this.logger.error("Invalid OpenRouter configuration", { config });
 
       throw new OpenRouterServiceError(
         "CONFIG_ERROR",
