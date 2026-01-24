@@ -17,15 +17,15 @@ Route map:
 ### 2.1 Authentication
 
 - **Path**: `/login`
-- **Purpose**: Login, sign-up.
-- **Key info**: Allows entering email and password to authenticate; displays password rules and inline validation errors.
-- **Key components**: Login/register form with email and password fields, submit button, validation error messages, validation rules.
+- **Purpose**: Allow new users to sign up and existing users to log in.
+- **Key info**: Displays two separate forms on a single page: a login form for existing users (email, password) and a sign-up form for new users (email, password, repeat password). Both forms are stacked vertically with the login form first. Both forms validate email format, sign-up form enforces password rules.
+- **Key components**: `LoginForm` (email, password, submit) and `SignUpForm` (email, password, repeat password, submit) rendered one below another; Also error messages (validation, or submitting errors), helper text for password rules.
 - **UX / accessibility / security**:
   - Password field masked.
   - Validation errors displayed inline.
   - Handling keyboard navigation (tab/enter).
   - Redirect authenticated users away to `/generate`.
-- **Mapped requirements**: F-01, US-001–US-003.
+- **Mapped requirements**: F-01, US-001–US-002.
 
 ### 2.2 Flashcards Generation
 

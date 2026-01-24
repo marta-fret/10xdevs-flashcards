@@ -11,6 +11,7 @@ Manually creating high-quality educational flashcards is a time-consuming and te
 ## 3. Functional Requirements
 
 - **F-01: User Authentication System**
+  - Only an authenticated user can access pages other than Authentication page (which allows for logging in or signing up).
   - User can create an account using an email and password.
   - User can log in and log out.
   - User can change their password.
@@ -76,12 +77,14 @@ Manually creating high-quality educational flashcards is a time-consuming and te
 - **Title**: New User Account Creation
 - **Description**: As a new user, I want to create an account using my email and a password so that I can save and manage my flashcards.
 - **Acceptance Criteria**:
-  - A sign-up form with email and password fields is available.
+  - A sign-up form with email, password and repeat password fields is available.
   - The system validates that the email is in a valid format.
   - The system checks if the email is already registered.
   - Password field must be masked.
   - Password is validated against defined security criteria (e.g., minimum length).
-  - Upon successful registration, the user is automatically logged in.
+  - Repeat password field must match the password field.
+  - Upon successful registration, the user is automatically logged in and redirected to the view for generating flashcards.
+  - Authenticated user can access all other application pages whereas unauthenticated one can only access Authentication page.
 
 - **ID**: US-002
 - **Title**: User Login
@@ -91,6 +94,7 @@ Manually creating high-quality educational flashcards is a time-consuming and te
   - The system validates the user's credentials.
   - Upon successful login, the user is redirected to the view for generating flashcards.
   - An appropriate error message is shown for incorrect credentials.
+  - Authenticated user can access all other application pages whereas unauthenticated one can only access Authentication page.
 
 - **ID**: US-003
 - **Title**: User Logout
