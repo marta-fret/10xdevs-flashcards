@@ -1,0 +1,16 @@
+---
+import RootPublicLayout from "../layouts/RootPublicLayout.astro";
+import { AuthenticationView } from "../components/auth/AuthenticationView";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+
+if (user) {
+  return Astro.redirect("/generate");
+}
+---
+
+<RootPublicLayout title="Login">
+  <AuthenticationView client:load />
+</RootPublicLayout>

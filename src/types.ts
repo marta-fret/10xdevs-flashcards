@@ -162,3 +162,10 @@ export type GenerationErrorLogDto = GenerationErrorLogRow;
 
 // Response DTO for GET /generation-error-logs.
 export type GenerationErrorLogsListResponseDto = GenerationErrorLogDto[];
+
+// Command model for POST /auth/signup.
+export interface SignupCommand {
+  email: string;
+  password: string;
+  repeatPassword: string;
+}
