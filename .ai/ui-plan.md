@@ -2,7 +2,7 @@
 
 ## 1. UI Structure Overview
 
-There are 5 main views in the application: 'Authentication', 'Flashcards Generation', 'Flashcards Management', 'Learning Session', and 'User Panel'. The application separates unauthenticated and authenticated areas with an `AuthGuard`. Authenticated pages share a common layout containing a top-bar navigation menu, global feedback zones (toast area, alert banner), and a main content outlet. Each view is implemented as an Astro page that renders React components where interactivity is required. Views are build with shadcn/ui components and Tailwind CSS for styling. Front-end state is handled with React Context and hooks local to features; server communication uses simple `fetch` calls to the REST API.
+There are 5 main views in the application: 'Authentication', 'Flashcards Generation', 'Flashcards Management', 'Learning Session', and 'User Panel'. The application separates unauthenticated and authenticated areas with an `AuthGuard`. Authenticated pages share a common layout containing a top-bar navigation menu, a global toast area for feedback, and a main content outlet. Each view is implemented as an Astro page that renders React components where interactivity is required. Views are build with shadcn/ui components and Tailwind CSS for styling. Front-end state is handled with React Context and hooks local to features; server communication uses simple `fetch` calls to the REST API.
 
 Route map:
 
@@ -22,7 +22,7 @@ Route map:
 - **Key components**: `LoginForm` (email, password, submit) and `SignUpForm` (email, password, repeat password, submit) rendered one below another; Also error messages (validation, or submitting errors), helper text for password rules.
 - **UX / accessibility / security**:
   - Password field masked.
-  - Validation errors displayed inline.
+  - Validation errors displayed inline; errors from submitting the forms are shown as toast messages in the global toast area.
   - Handling keyboard navigation (tab/enter).
   - Redirect authenticated users away to `/generate`.
 - **Mapped requirements**: F-01, US-001–US-002.
@@ -74,6 +74,7 @@ Route map:
 - **UX / accessibility / security**:
   - After logout: redirect to /login.
   - After account deletion: auto-logout, redirect to /login, show success toast.
+  - If any of these operations fails, show an error toast in the global toast area.
   - Password fields masked.
   - Forms enforce strong password rules.
 - **Mapped requirements**: F-01 (change/delete), US-004–US-005.
@@ -98,10 +99,10 @@ Route map:
     - Links: Generate, Flashcards, Learn, User Panel, Logout button.
     - Collapses into hamburger on small screens; hidden (`aria-hidden="true"`) while any modal/dialog is open.
   - `MainOutlet` (renders active view)
-  - `GlobalToastZone` and optional `AlertBanner` for page-level errors.
+  - `GlobalToastZone` for page-level errors.
 - **RootPublicLayout**: simple centered container for auth forms.
 - **Routing Rules**:
-  - `AuthGuard` wraps all authenticated routes; redirects unauth users to `/login` and redirects authenticated users to `/flashcards`.
+  - `AuthGuard` wraps all authenticated routes; redirects unauth users to `/login` and redirects authenticated users to `/generate`.
 
 ## 5. Key Components
 
