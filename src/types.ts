@@ -169,3 +169,9 @@ export interface SignupCommand {
   password: string;
   repeatPassword: string;
 }
+
+// Command model for POST /auth/login.
+export interface LoginCommand {
+  email: string;
+  password: string;
+}
