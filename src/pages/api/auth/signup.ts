@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import type { SupabaseClient } from "../../../db/supabase.client.ts";
 import type { ApiErrorResponse, SignupApiErrorCode, SignupCommand } from "@/types.ts";
 import { signupCommandSchema } from "@/lib/authUtils";
-import { jsonResponse } from "../utils";
+import { createApiErrorLogger, jsonResponse } from "../utils";
 
 export const prerender = false;
 
@@ -22,10 +22,13 @@ interface SignupSuccessResponseBody {
 const errorResponse = (code: SignupApiErrorCode, message: string, status: number) =>
   jsonResponse<SignupErrorResponseBody>({ error: { code, message } }, status);
 
+const logError = createApiErrorLogger("signup");
+
 export const POST: APIRoute = async ({ request, locals }) => {
   const { supabase } = locals as LocalsWithSupabase;
 
   if (!supabase) {
+    logError("Supabase client not available");
     return errorResponse("INTERNAL_ERROR", "Supabase client not available", 500);
   }
 
@@ -33,13 +36,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     json = await request.json();
   } catch {
+    logError("Invalid JSON body");
     return errorResponse("VALIDATION_ERROR", "Invalid JSON body", 400);
   }
 
   const parseResult = signupCommandSchema.safeParse(json);
   if (!parseResult.success) {
     const firstError = parseResult.error.errors[0];
-    return errorResponse("VALIDATION_ERROR", firstError?.message ?? "Invalid form data", 400);
+    const message = firstError?.message ?? "Invalid form data";
+    logError("Invalid form data: " + message);
+    return errorResponse("VALIDATION_ERROR", message, 400);
   }
 
   const { email, password } = parseResult.data as SignupCommand;
@@ -52,10 +58,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const normalized = message.toLowerCase();
 
       if (normalized.includes("already registered") || normalized.includes("already exists")) {
-        return errorResponse("EMAIL_ALREADY_REGISTERED", "This email is already registered", 409);
+        const message = "This email is already registered";
+        logError("Email already registered, " + message);
+        return errorResponse("EMAIL_ALREADY_REGISTERED", message, 409);
       }
 
       // Generic internal error for other Supabase failures
+      logError("Unhandled signup error: " + message);
       return errorResponse("INTERNAL_ERROR", "Internal server error", 500);
     }
 
@@ -73,8 +82,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       error && typeof error === "object" && "message" in error
         ? String((error as { message?: unknown }).message)
         : "unknown";
-    // eslint-disable-next-line no-console
-    console.error("[API] Unhandled signup error:", message);
+    logError("Unhandled signup error: " + message);
     return errorResponse("INTERNAL_ERROR", "Internal server error", 500);
   }
 };

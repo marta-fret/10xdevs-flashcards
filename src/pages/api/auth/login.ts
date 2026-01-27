@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import type { SupabaseClient } from "../../../db/supabase.client.ts";
 import type { ApiErrorResponse, LoginCommand, LoginApiErrorCode } from "@/types.ts";
 import { loginCommandSchema } from "@/lib/authUtils";
-import { jsonResponse } from "../utils";
+import { createApiErrorLogger, jsonResponse } from "../utils";
 
 export const prerender = false;
 
@@ -24,10 +24,13 @@ const errorResponse = (code: LoginApiErrorCode, message: string, status: number)
 
 const invalidCredentialsResponse = () => errorResponse("INVALID_CREDENTIALS", "Incorrect credentials", 401);
 
+const logError = createApiErrorLogger("login");
+
 export const POST: APIRoute = async ({ request, locals }) => {
   const { supabase } = locals as LocalsWithSupabase;
 
   if (!supabase) {
+    logError("Supabase client not available");
     return errorResponse("INTERNAL_ERROR", "Supabase client not available", 500);
   }
 
@@ -35,11 +38,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     json = await request.json();
   } catch {
+    logError("Invalid JSON body");
     return invalidCredentialsResponse();
   }
 
   const parseResult = loginCommandSchema.safeParse(json);
   if (!parseResult.success) {
+    logError("Invalid form data");
     return invalidCredentialsResponse();
   }
 
@@ -49,6 +54,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error || !data?.user) {
+      logError("Supabase login failed");
       return invalidCredentialsResponse();
     }
 
@@ -63,8 +69,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       error && typeof error === "object" && "message" in error
         ? String((error as { message?: unknown }).message)
         : "unknown";
-    // eslint-disable-next-line no-console
-    console.error("[API] Unhandled login error:", message);
+    logError("Unhandled login error: " + message);
     return errorResponse("INTERNAL_ERROR", "Internal server error", 500);
   }
 };
