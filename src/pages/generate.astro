@@ -4,14 +4,11 @@ import { FlashcardGenerationView } from "../components/generate/FlashcardGenerat
 
 export const prerender = false;
 
-// const { supabase } = Astro.locals;
-// const {
-//   data: { session },
-// } = await supabase.auth.getSession();
+const user = Astro.locals.user;
 
-// if (!session) {
-//   return Astro.redirect("/login");
-// }
+if (!user) {
+  return Astro.redirect("/login");
+}
 ---
 
 <Layout title="Generate Flashcards">

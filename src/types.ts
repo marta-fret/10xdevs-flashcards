@@ -202,3 +202,6 @@ export type LoginApiErrorCode = "INVALID_CREDENTIALS" | "INTERNAL_ERROR";
 
 // Error codes for /signup
 export type SignupApiErrorCode = "VALIDATION_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INTERNAL_ERROR";
+
+// Error codes for /logout
+export type LogoutApiErrorCode = "INTERNAL_ERROR";
