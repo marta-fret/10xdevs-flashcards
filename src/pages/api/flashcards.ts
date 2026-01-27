@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { CreateFlashcardsCommand } from "../../types";
 import { DEFAULT_USER_ID, type SupabaseClient } from "../../db/supabase.client";
 import { FlashcardsService } from "../../lib/services/flashcards.service";
+import { jsonResponse } from "./utils";
 
 const createFlashcardCommandItemSchema = z.object({
   front: z.string().trim().min(1).max(200),
@@ -39,15 +40,6 @@ interface ErrorResponseBody {
   error: ErrorCode;
   message: string;
 }
-
-const jsonResponse = <T>(body: T, init?: number | ResponseInit) =>
-  new Response(JSON.stringify(body), {
-    status: typeof init === "number" ? init : (init?.status ?? 200),
-    headers: {
-      "Content-Type": "application/json",
-      ...(typeof init === "object" && init.headers ? init.headers : {}),
-    },
-  });
 
 const errorResponse = (code: ErrorCode, message: string, status: number) =>
   jsonResponse<ErrorResponseBody>({ error: code, message }, status);

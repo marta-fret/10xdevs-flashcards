@@ -4,6 +4,7 @@ import type { CreateGenerationCommand } from "../../types";
 import { DEFAULT_USER_ID, type SupabaseClient } from "../../db/supabase.client";
 import { GenerationService } from "../../lib/services/generation.service";
 import { OpenRouterServiceError } from "../../lib/services/openrouter.service.error";
+import { jsonResponse } from "./utils";
 
 const createGenerationCommandSchema = z.object({
   source_text: z
@@ -18,15 +19,6 @@ interface ErrorResponseBody {
   error: ErrorCode;
   message: string;
 }
-
-const jsonResponse = <T>(body: T, init?: number | ResponseInit) =>
-  new Response(JSON.stringify(body), {
-    status: typeof init === "number" ? init : (init?.status ?? 200),
-    headers: {
-      "Content-Type": "application/json",
-      ...(typeof init === "object" && init.headers ? init.headers : {}),
-    },
-  });
 
 const errorResponse = (code: ErrorCode, message: string, status: number) =>
   jsonResponse<ErrorResponseBody>({ error: code, message }, status);

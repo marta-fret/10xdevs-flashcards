@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import type { SupabaseClient } from "../../../db/supabase.client.ts";
 import type { SignupCommand } from "@/types.ts";
 import { signupCommandSchema } from "@/lib/authUtils";
+import { jsonResponse } from "../utils";
 
 export const prerender = false;
 
@@ -24,15 +25,6 @@ interface SignupSuccessResponseBody {
     email: string | null;
   };
 }
-
-const jsonResponse = <T>(body: T, init?: number | ResponseInit) =>
-  new Response(JSON.stringify(body), {
-    status: typeof init === "number" ? init : (init?.status ?? 200),
-    headers: {
-      "Content-Type": "application/json",
-      ...(typeof init === "object" && init.headers ? init.headers : {}),
-    },
-  });
 
 const errorResponse = (code: AuthErrorCode, message: string, status: number) =>
   jsonResponse<AuthErrorResponseBody>({ error: { code, message } }, status);
