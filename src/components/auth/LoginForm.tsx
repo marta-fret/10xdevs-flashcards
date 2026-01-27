@@ -73,7 +73,7 @@ export const LoginForm: React.FC = () => {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight">Sign in</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Log in</h2>
           <p className="text-sm text-muted-foreground">Use your email and password to access your flashcards.</p>
         </div>
 
@@ -107,7 +107,7 @@ export const LoginForm: React.FC = () => {
 
         <div className="pt-2">
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
         </div>
       </form>

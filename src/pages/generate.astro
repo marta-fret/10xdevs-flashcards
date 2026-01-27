@@ -1,5 +1,5 @@
 ---
-import Layout from "../layouts/Layout.astro";
+import RootAuthenticatedLayout from "../layouts/RootAuthenticatedLayout.astro";
 import { FlashcardGenerationView } from "../components/generate/FlashcardGenerationView";
 
 export const prerender = false;
@@ -11,6 +11,6 @@ if (!user) {
 }
 ---
 
-<Layout title="Generate Flashcards">
+<RootAuthenticatedLayout title="Generate Flashcards">
   <FlashcardGenerationView client:load />
-</Layout>
+</RootAuthenticatedLayout>
