@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import type { SupabaseClient } from "../../../db/supabase.client.ts";
-import type { SignupCommand } from "@/types.ts";
+import type { ApiErrorResponse, SignupApiErrorCode, SignupCommand } from "@/types.ts";
 import { signupCommandSchema } from "@/lib/authUtils";
 import { jsonResponse } from "../utils";
 
@@ -10,14 +10,7 @@ interface LocalsWithSupabase {
   supabase: SupabaseClient;
 }
 
-type AuthErrorCode = "VALIDATION_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INTERNAL_ERROR";
-
-interface AuthErrorResponseBody {
-  error: {
-    code: AuthErrorCode;
-    message: string;
-  };
-}
+type SignupErrorResponseBody = ApiErrorResponse<SignupApiErrorCode>;
 
 interface SignupSuccessResponseBody {
   data: {
@@ -26,8 +19,8 @@ interface SignupSuccessResponseBody {
   };
 }
 
-const errorResponse = (code: AuthErrorCode, message: string, status: number) =>
-  jsonResponse<AuthErrorResponseBody>({ error: { code, message } }, status);
+const errorResponse = (code: SignupApiErrorCode, message: string, status: number) =>
+  jsonResponse<SignupErrorResponseBody>({ error: { code, message } }, status);
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const { supabase } = locals as LocalsWithSupabase;

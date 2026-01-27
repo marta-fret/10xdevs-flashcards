@@ -10,6 +10,7 @@ import { InlineErrorMessage } from "../ui/InlineErrorMessage";
 import { LoadingOverlay } from "../ui/LoadingOverlay";
 import { showToast } from "../ui/GlobalToastZone";
 import type z from "zod";
+import type { ApiErrorResponse, SignupApiErrorCode } from "@/types";
 
 export type SignupCommandInput = z.infer<typeof signupCommandSchema>;
 
@@ -44,10 +45,10 @@ export const SignUpForm: React.FC = () => {
       });
 
       if (!response.ok) {
-        let errorCode: string | undefined;
+        let errorCode: SignupApiErrorCode | undefined;
 
         try {
-          const body = (await response.json()) as { error?: { code?: string } };
+          const body = (await response.json()) as ApiErrorResponse<SignupApiErrorCode>;
           errorCode = body?.error?.code;
         } catch {
           // Ignore JSON parsing errors and fall back to generic message.

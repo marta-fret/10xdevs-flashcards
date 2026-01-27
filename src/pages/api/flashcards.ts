@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import type { CreateFlashcardsCommand } from "../../types";
+import type { ApiErrorResponse, CreateFlashcardsCommand, FlashcardsApiErrorCode } from "../../types";
 import { DEFAULT_USER_ID, type SupabaseClient } from "../../db/supabase.client";
 import { FlashcardsService } from "../../lib/services/flashcards.service";
 import { jsonResponse } from "./utils";
@@ -34,15 +34,10 @@ const createFlashcardsCommandSchema = z
     }
   );
 
-type ErrorCode = "invalid_request" | "unauthorized" | "internal_error";
+type ErrorResponseBody = ApiErrorResponse<FlashcardsApiErrorCode>;
 
-interface ErrorResponseBody {
-  error: ErrorCode;
-  message: string;
-}
-
-const errorResponse = (code: ErrorCode, message: string, status: number) =>
-  jsonResponse<ErrorResponseBody>({ error: code, message }, status);
+const errorResponse = (code: FlashcardsApiErrorCode, message: string, status: number) =>
+  jsonResponse<ErrorResponseBody>({ error: { code, message } }, status);
 
 export const prerender = false;
 

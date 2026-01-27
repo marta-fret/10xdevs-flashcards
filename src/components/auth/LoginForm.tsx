@@ -10,6 +10,7 @@ import { InlineErrorMessage } from "../ui/InlineErrorMessage";
 import { LoadingOverlay } from "../ui/LoadingOverlay";
 import { showToast } from "../ui/GlobalToastZone";
 import type z from "zod";
+import type { ApiErrorResponse, LoginApiErrorCode } from "@/types";
 
 export type LoginCommandInput = z.infer<typeof loginCommandSchema>;
 
@@ -42,10 +43,10 @@ export const LoginForm: React.FC = () => {
       });
 
       if (!response.ok) {
-        let errorCode: string | undefined;
+        let errorCode: LoginApiErrorCode | undefined;
 
         try {
-          const body = (await response.json()) as { error?: { code?: string } };
+          const body = (await response.json()) as ApiErrorResponse<LoginApiErrorCode>;
           errorCode = body?.error?.code;
         } catch {
           // Ignore JSON parsing errors and fall back to generic message.

@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import type { SupabaseClient } from "../../../db/supabase.client.ts";
-import type { LoginCommand } from "@/types.ts";
+import type { ApiErrorResponse, LoginCommand, LoginApiErrorCode } from "@/types.ts";
 import { loginCommandSchema } from "@/lib/authUtils";
 import { jsonResponse } from "../utils";
 
@@ -10,14 +10,7 @@ interface LocalsWithSupabase {
   supabase: SupabaseClient;
 }
 
-type LoginErrorCode = "INVALID_CREDENTIALS" | "INTERNAL_ERROR";
-
-interface LoginErrorResponseBody {
-  error: {
-    code: LoginErrorCode;
-    message: string;
-  };
-}
+type LoginErrorResponseBody = ApiErrorResponse<LoginApiErrorCode>;
 
 interface LoginSuccessResponseBody {
   data: {
@@ -26,7 +19,7 @@ interface LoginSuccessResponseBody {
   };
 }
 
-const errorResponse = (code: LoginErrorCode, message: string, status: number) =>
+const errorResponse = (code: LoginApiErrorCode, message: string, status: number) =>
   jsonResponse<LoginErrorResponseBody>({ error: { code, message } }, status);
 
 const invalidCredentialsResponse = () => errorResponse("INVALID_CREDENTIALS", "Incorrect credentials", 401);

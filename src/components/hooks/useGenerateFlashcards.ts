@@ -1,5 +1,10 @@
 import { useState } from "react";
-import type { CreateGenerationCommand, CreateGenerationResponseDto } from "../../types";
+import type {
+  ApiErrorResponse,
+  CreateGenerationCommand,
+  CreateGenerationResponseDto,
+  GenerationsApiErrorCode,
+} from "../../types";
 
 interface UseGenerateFlashcardsResult {
   generate: (sourceText: string) => Promise<CreateGenerationResponseDto | null>;
@@ -27,8 +32,11 @@ export const useGenerateFlashcards = (): UseGenerateFlashcardsResult => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Generation failed: ${response.statusText}`);
+        const errorResponse = (await response.json().catch(() => ({
+          error: { code: "internal_error", message: "Broken response data" },
+        }))) as ApiErrorResponse<GenerationsApiErrorCode>;
+
+        throw new Error(errorResponse.error.message || `Generation failed: ${response.statusText}`);
       }
 
       const data: CreateGenerationResponseDto = await response.json();

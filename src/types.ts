@@ -175,3 +175,30 @@ export interface LoginCommand {
   email: string;
   password: string;
 }
+
+// Generic API error payload and response envelope used by REST endpoints.
+export interface ApiErrorPayload<Code extends string = string> {
+  code: Code;
+  message: string;
+}
+
+export interface ApiErrorResponse<Code extends string = string> {
+  error: ApiErrorPayload<Code>;
+}
+
+// Error codes for /flashcards.
+export type FlashcardsApiErrorCode = "invalid_request" | "unauthorized" | "internal_error";
+
+// Error codes for /generations.
+export type GenerationsApiErrorCode =
+  | "invalid_request"
+  | "unauthorized"
+  | "upstream_error"
+  | "internal_error"
+  | "service_unavailable";
+
+// Error codes for /login
+export type LoginApiErrorCode = "INVALID_CREDENTIALS" | "INTERNAL_ERROR";
+
+// Error codes for /signup
+export type SignupApiErrorCode = "VALIDATION_ERROR" | "EMAIL_ALREADY_REGISTERED" | "INTERNAL_ERROR";

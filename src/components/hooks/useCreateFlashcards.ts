@@ -1,5 +1,10 @@
 import { useState } from "react";
-import type { CreateFlashcardsCommand, CreateFlashcardsResponseDto } from "../../types";
+import type {
+  ApiErrorResponse,
+  CreateFlashcardsCommand,
+  CreateFlashcardsResponseDto,
+  FlashcardsApiErrorCode,
+} from "../../types";
 
 interface UseCreateFlashcardsResult {
   create: (payload: CreateFlashcardsCommand) => Promise<CreateFlashcardsResponseDto | null>;
@@ -25,8 +30,11 @@ export const useCreateFlashcards = (): UseCreateFlashcardsResult => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Saving failed: ${response.statusText}`);
+        const errorResponse = (await response.json().catch(() => ({
+          error: { code: "internal_error", message: "Broken response data" },
+        }))) as ApiErrorResponse<FlashcardsApiErrorCode>;
+
+        throw new Error(errorResponse?.error?.message || `Saving failed: ${response.statusText}`);
       }
 
       const data: CreateFlashcardsResponseDto = await response.json();

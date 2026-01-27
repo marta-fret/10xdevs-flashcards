@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
-import type { CreateGenerationCommand } from "../../types";
+import type { ApiErrorResponse, CreateGenerationCommand, GenerationsApiErrorCode } from "../../types";
 import { DEFAULT_USER_ID, type SupabaseClient } from "../../db/supabase.client";
 import { GenerationService } from "../../lib/services/generation.service";
 import { OpenRouterServiceError } from "../../lib/services/openrouter.service.error";
@@ -13,15 +13,10 @@ const createGenerationCommandSchema = z.object({
     .max(10000, "source_text must be between 1000 and 10000 characters"),
 });
 
-type ErrorCode = "invalid_request" | "unauthorized" | "upstream_error" | "internal_error" | "service_unavailable";
+type ErrorResponseBody = ApiErrorResponse<GenerationsApiErrorCode>;
 
-interface ErrorResponseBody {
-  error: ErrorCode;
-  message: string;
-}
-
-const errorResponse = (code: ErrorCode, message: string, status: number) =>
-  jsonResponse<ErrorResponseBody>({ error: code, message }, status);
+const errorResponse = (code: GenerationsApiErrorCode, message: string, status: number) =>
+  jsonResponse<ErrorResponseBody>({ error: { code, message } }, status);
 
 export const prerender = false;
 
