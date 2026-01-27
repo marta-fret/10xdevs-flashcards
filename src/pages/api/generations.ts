@@ -1,7 +1,6 @@
 import type { APIRoute } from "astro";
 import { z } from "zod";
 import type { ApiErrorResponse, CreateGenerationCommand, GenerationsApiErrorCode } from "../../types";
-import { DEFAULT_USER_ID, type SupabaseClient } from "../../db/supabase.client";
 import { GenerationService } from "../../lib/services/generation.service";
 import { OpenRouterServiceError } from "../../lib/services/openrouter.service.error";
 import { jsonResponse } from "./utils";
@@ -20,19 +19,15 @@ const errorResponse = (code: GenerationsApiErrorCode, message: string, status: n
 
 export const prerender = false;
 
-interface LocalsWithSupabase {
-  supabase: SupabaseClient;
-}
-
 export const POST: APIRoute = async ({ request, locals }) => {
-  const { supabase } = locals as LocalsWithSupabase;
+  const { supabase, user } = locals;
 
   if (!supabase) {
     return errorResponse("internal_error", "Supabase client not available", 500);
   }
 
   // TODO: Replace with real authenticated user once auth middleware is wired.
-  const userId = DEFAULT_USER_ID;
+  const userId = user?.id;
   if (!userId) {
     return errorResponse("unauthorized", "Authentication required", 401);
   }
