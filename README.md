@@ -112,6 +112,13 @@ The following scripts are available in the `package.json`:
 - `npm run lint:fix`: Lints the codebase and automatically fixes issues.
 - `npm run format`: Formats the code using Prettier.
 - `npm run astro`: To run Astro commands.
+- `npm test`: Runs the Vitest unit/integration test suite.
+- `npm run test:watch`: Runs Vitest in watch mode.
+- `npm run test:ui`: Runs Vitest in UI mode.
+- `npm run test:coverage`: Runs Vitest with coverage reporting.
+- `npm run test:e2e`: Runs Playwright end-to-end tests (headless Chromium).
+- `npm run test:e2e:headed`: Runs Playwright tests in a visible Chromium browser.
+- `npm run test:e2e:ui`: Opens the Playwright Test Runner UI.
 
 ## Project Scope
 
