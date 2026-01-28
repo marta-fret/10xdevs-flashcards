@@ -23,7 +23,7 @@ export const SignUpForm: React.FC = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<SignupCommandInput>({
     resolver: zodResolver(signupCommandSchema),
     mode: "onChange",
@@ -126,7 +126,7 @@ export const SignUpForm: React.FC = () => {
         </div>
 
         <div className="pt-2">
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full" disabled={isSubmitting || !isValid}>
             {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </div>

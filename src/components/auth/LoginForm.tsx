@@ -22,7 +22,7 @@ export const LoginForm: React.FC = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
   } = useForm<LoginCommandInput>({
     resolver: zodResolver(loginCommandSchema),
     mode: "onChange",
@@ -106,7 +106,7 @@ export const LoginForm: React.FC = () => {
         </div>
 
         <div className="pt-2">
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full" disabled={isSubmitting || !isValid}>
             {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
         </div>
