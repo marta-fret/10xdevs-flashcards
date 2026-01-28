@@ -35,8 +35,14 @@ The project uses a modern tech stack for a high-performance, scalable, and maint
 - **AI Integration**:
   - **OpenRouter.ai**: A service that provides access to a wide range of Large Language Models (LLMs) for generating flashcard content efficiently.
 
+- **Testing & Quality**:
+  - **Vitest**: Planned primary test runner for unit and integration tests in TypeScript.
+  - **React Testing Library**: For testing React components and user interactions.
+  - **Playwright**: For end-to-end browser tests of critical user flows.
+  - **ESLint + TypeScript**: For static analysis and code style checks.
+
 - **CI/CD & Hosting**:
-  - **GitHub Actions**: For automating continuous integration and deployment pipelines.
+  - **GitHub Actions**: For automating continuous integration and deployment pipelines, including linting and running unit/integration tests on pull/merge requests.
   - **DigitalOcean**: For hosting the application using Docker containers.
 
 ## Getting Started Locally
@@ -51,6 +57,7 @@ To run the project locally, follow these steps.
 ### Installation
 
 1.  **Clone the repository**:
+
     ```bash
     git clone https://github.com/your-username/10xdevs-flashcards.git
     cd 10xdevs-flashcards
@@ -58,6 +65,7 @@ To run the project locally, follow these steps.
 
 2.  **Set the Node.js version**:
     If you are using `nvm`, run the following command to use the correct Node.js version:
+
     ```bash
     nvm use
     ```
@@ -109,12 +117,12 @@ The following scripts are available in the `package.json`:
 
 The project includes the following key functionalities:
 
--   **User Authentication**: Basic user authentication and account management.
--   **AI-Powered Flashcard Generation**: Automated flashcard creation from plain text using AI.
--   **Manual Flashcard Creation**: Standard form-based creation of flashcards.
--   **Flashcard Management**: Tools for viewing, searching, editing, and deleting flashcards.
--   **Learning Module**: Study session feature using an integrated spaced repetition algorithm.
--   **Internal Analytics**: Tracking flashcards creation to measure success criteria.
+- **User Authentication**: Basic user authentication and account management.
+- **AI-Powered Flashcard Generation**: Automated flashcard creation from plain text using AI.
+- **Manual Flashcard Creation**: Standard form-based creation of flashcards.
+- **Flashcard Management**: Tools for viewing, searching, editing, and deleting flashcards.
+- **Learning Module**: Study session feature using an integrated spaced repetition algorithm.
+- **Internal Analytics**: Tracking flashcards creation to measure success criteria.
 
 ## Project Status
 

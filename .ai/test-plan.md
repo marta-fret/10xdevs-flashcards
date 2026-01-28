@@ -326,6 +326,7 @@ The schedule is indicative and should adapt to implementation progress.
 
 - **Phase 1 – Foundation (before feature freeze)**
   - Set up test frameworks (unit, API, E2E) and test environment.
+  - Configure Docker/Docker Compose for the test environment and create baseline GitHub Actions pipelines (unit and integration tests on pull/merge requests, smoke E2E on main or nightly).
   - Implement smoke tests for app startup, middleware, and basic navigation.
 
 - **Phase 2 – Core features (Authentication, Generation, Flashcards Management)**

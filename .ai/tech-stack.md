@@ -24,3 +24,13 @@ CI/CD i Hosting:
 
 - Github Actions do tworzenia pipeline’ów CI/CD
 - DigitalOcean do hostowania aplikacji za pośrednictwem obrazu docker
+
+Testy i jakość:
+
+- Vitest jako runner testów jednostkowych i integracyjnych w TypeScript
+- React Testing Library do testów komponentów React
+- Playwright do end-to-end testów przeglądarkowych kluczowych ścieżek użytkownika
+- MSW (Mock Service Worker) do mockowania wywołań HTTP w testach frontendowych
+- Nock (lub podobna biblioteka) do mockowania wywołań HTTP po stronie backendu (np. do OpenRouter)
+- ESLint + TypeScript jako statyczna analiza w pipeline’ach CI
+- Pipeline’y GitHub Actions uruchamiające lintowanie oraz testy (unit/integration) na każde pull/merge requesty, a także smoke E2E na gałęzi głównej co noc.
