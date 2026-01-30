@@ -1,4 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
+import path from "path";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, ".env.test") });
 
 export default defineConfig({
   testDir: "./e2e",
@@ -26,7 +34,7 @@ export default defineConfig({
   ],
   reporter: [["html", { open: "never" }], ["list"]],
   webServer: {
-    command: "npm run dev",
+    command: "npm run dev:e2e",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
@@ -59,9 +67,4 @@ export default defineConfig({
       },
     ];
 
-  Longer-term:
-  - Use a dedicated env file for E2E (e.g. .env.e2e or .env.integration) and/or
-    a dedicated dev:e2e server script:
-    - Load it at the top of this file with dotenv.
-    - Point webServer.command to "npm run dev:e2e" when such a script exists.
 */

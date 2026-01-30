@@ -86,6 +86,7 @@ export const LoginForm: React.FC = () => {
             placeholder="you@example.com"
             aria-invalid={errors.email ? "true" : "false"}
             disabled={isSubmitting}
+            data-testid="login-email"
             {...register("email")}
           />
           {errors.email?.message && <InlineErrorMessage message={errors.email.message} />}
@@ -100,13 +101,14 @@ export const LoginForm: React.FC = () => {
             placeholder="••••••••"
             aria-invalid={errors.password ? "true" : "false"}
             disabled={isSubmitting}
+            data-testid="login-password"
             {...register("password")}
           />
           {errors.password?.message && <InlineErrorMessage message={errors.password.message} />}
         </div>
 
         <div className="pt-2">
-          <Button type="submit" className="w-full" disabled={isSubmitting || !isValid}>
+          <Button type="submit" className="w-full" disabled={isSubmitting || !isValid} data-testid="login-submit">
             {isSubmitting ? "Logging in..." : "Log in"}
           </Button>
         </div>

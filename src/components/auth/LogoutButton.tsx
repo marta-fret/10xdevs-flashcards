@@ -37,7 +37,14 @@ export const LogoutButton: React.FC = () => {
     <div className="relative inline-flex">
       {isLoading && <LoadingOverlay />}
 
-      <Button type="button" variant="outline" size="sm" onClick={handleLogout} disabled={isLoading}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={handleLogout}
+        disabled={isLoading}
+        data-testid="logout-button"
+      >
         {isLoading ? "Logging out..." : "Logout"}
       </Button>
     </div>

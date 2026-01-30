@@ -1,0 +1,14 @@
+# build output
+dist/
+
+# dependencies
+node_modules/
+
+# environment variables
+.env
+*.env.*
+!.env.example
+
+playwright-report/
+test-results/
+coverage/
