@@ -16,23 +16,23 @@ trigger: manual
 1. For each public action always use <tool>"Run Terminal"</tool> to see what is the most up-to-date version (use only major version):
 
 ```bash
-curl -s https://api.github.com/repos/{owner}/{repo}/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([0-9]+).*/\1/'
+curl -k -s https://api.github.com/repos/{owner}/{repo}/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([0-9]+).*/\1/'
 ```
 
 2. (Ask if needed) Use <tool>"Run Terminal"</tool> to fetch README.md and see if we're not using any deprecated actions by mistake:
 
 ```bash
-curl -s https://raw.githubusercontent.com/{owner}/{repo}/refs/tags/v{TAG_VERSION}/README.md
+curl -k -s https://raw.githubusercontent.com/{owner}/{repo}/refs/tags/v{TAG_VERSION}/README.md
 ```
 
 3. (Ask if needed) Use <tool>"Run Terminal"</tool> to fetch repo metadata and see if we're not using any deprecated actions by mistake:
 
 ```bash
-curl -s https://api.github.com/repos/{owner}/{repo} | grep '"archived":'
+curl -k -s https://api.github.com/repos/{owner}/{repo} | grep '"archived":'
 ```
 
 4. (Ask if needed) In case of linter issues related to action parameters, try to fetch action description directly from GitHub and use the following command:
 
 ```bash
-curl -s https://raw.githubusercontent.com/{owner}/{repo}/refs/heads/{main/master}/action.yml
+curl -k -s https://raw.githubusercontent.com/{owner}/{repo}/refs/heads/{main/master}/action.yml
 ```
