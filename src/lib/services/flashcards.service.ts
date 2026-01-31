@@ -4,8 +4,14 @@ import type {
   FlashcardsListQueryCommand,
   FlashcardsListResponseDto,
   FlashcardListItemDto,
+  UpdateFlashcardCommand,
+  FlashcardDetailResponseDto,
+  FlashcardSource,
 } from "../../types";
 import type { SupabaseClient } from "../../db/supabase.client";
+import { createErrorLogger } from "../utils";
+
+const logError = createErrorLogger("FlashcardsService");
 
 export class FlashcardsService {
   constructor(private supabase: SupabaseClient) {}
@@ -17,7 +23,9 @@ export class FlashcardsService {
     });
 
     if (error) {
-      // TODO: Improve error handling based on specific db errors
+      logError(
+        `Failed to create flashcards in database for userId=${userId}: ${error.message ?? "Unknown database error"}`
+      );
       throw new Error("Failed to create flashcards in database");
     }
 
@@ -40,6 +48,9 @@ export class FlashcardsService {
       .range(offset, offset + limit - 1);
 
     if (error) {
+      logError(
+        `Failed to list flashcards from database for userId=${userId}: ${error.message ?? "Unknown database error"}`
+      );
       throw new Error("Failed to list flashcards from database");
     }
 
@@ -56,5 +67,131 @@ export class FlashcardsService {
         total_pages: totalPages,
       },
     };
+  }
+
+  public async updateFlashcard(
+    userId: string,
+    id: number,
+    command: UpdateFlashcardCommand
+  ): Promise<FlashcardDetailResponseDto | null> {
+    const { data: existing, error: fetchError } = await this.supabase
+      .from("flashcards")
+      .select("id, front, back, source, generation_id, created_at, updated_at")
+      .eq("id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      logError(
+        `Failed to load flashcard for update from database for userId=${userId}, flashcardId=${id}: ${
+          fetchError.message ?? "Unknown database error"
+        }`
+      );
+      throw new Error("Failed to load flashcard for update");
+    }
+
+    if (!existing) {
+      return null;
+    }
+
+    const updatePayload: { front?: string; back?: string; source?: FlashcardSource } = {};
+
+    const { front, back } = command;
+    const frontChanged = front !== undefined && front !== existing.front;
+    const backChanged = back !== undefined && back !== existing.back;
+
+    if (frontChanged) {
+      updatePayload.front = front as string;
+    }
+
+    if (backChanged) {
+      updatePayload.back = back as string;
+    }
+
+    if (existing.source === "ai-full" && (frontChanged || backChanged)) {
+      updatePayload.source = "ai-edited";
+    }
+
+    const shouldUpdate = Object.keys(updatePayload).length > 0;
+    if (!shouldUpdate) {
+      return existing as FlashcardDetailResponseDto;
+    }
+
+    const { data: updated, error: updateError } = await this.supabase
+      .from("flashcards")
+      .update(updatePayload)
+      .eq("id", id)
+      .eq("user_id", userId)
+      .select("id, front, back, source, generation_id, created_at, updated_at")
+      .maybeSingle();
+
+    if (updateError) {
+      logError(
+        `Failed to update flashcard in database for userId=${userId}, flashcardId=${id}: ${
+          updateError.message ?? "Unknown database error"
+        }`
+      );
+      throw new Error("Failed to update flashcard in database");
+    }
+
+    if (!updated) {
+      return null;
+    }
+
+    const updatedFlashcard = updated as FlashcardDetailResponseDto;
+
+    const hadGeneration = existing.generation_id !== null;
+    const sourceChangedFromAiFullToAiEdited = existing.source === "ai-full" && updatedFlashcard.source === "ai-edited";
+
+    if (hadGeneration && sourceChangedFromAiFullToAiEdited) {
+      const generationId = existing.generation_id as number;
+
+      try {
+        const { data: generation, error: generationFetchError } = await this.supabase
+          .from("generations")
+          .select("accepted_unedited_count, accepted_edited_count, generated_count")
+          .eq("id", generationId)
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (generationFetchError || !generation) {
+          logError(
+            `Failed to load generation for analytics update: generationId=${generationId}, flashcardId=${id}, reason=${
+              generationFetchError?.message ?? "Unknown database error or missing generation"
+            }`
+          );
+        } else {
+          const acceptedUnedited = generation.accepted_unedited_count ?? 0;
+          const acceptedEdited = generation.accepted_edited_count ?? 0;
+          const generatedCount = generation.generated_count ?? 0;
+
+          const { error: generationUpdateError } = await this.supabase
+            .from("generations")
+            .update({
+              // Math.max and Math.min are needed in case generation data was corrupted because of previous updates failures
+              accepted_unedited_count: Math.max(0, acceptedUnedited - 1),
+              accepted_edited_count: Math.min(generatedCount, acceptedEdited + 1),
+            })
+            .eq("id", generationId)
+            .eq("user_id", userId);
+
+          if (generationUpdateError) {
+            logError(
+              `Failed to update generation analytics counters: generationId=${generationId}, flashcardId=${id}, reason=${
+                generationUpdateError.message ?? "Unknown database error"
+              }`
+            );
+          }
+        }
+      } catch (error) {
+        logError(
+          `Unexpected error while updating generation analytics counters: generationId=${existing.generation_id}, flashcardId=${id}, reason=${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+    }
+
+    return updatedFlashcard;
   }
 }

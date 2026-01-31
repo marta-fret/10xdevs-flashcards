@@ -106,7 +106,7 @@ Additional rule:
 
 - **`ApiErrorResponse<FlashcardsApiErrorCode>`** (from `src/types.ts`)
 - **`FlashcardsApiErrorCode`**
-  - Current union: `"invalid_request" | "unauthorized" | "internal_error"` - nneds to be extended with `"not_found"`
+  - Current union: `"invalid_request" | "unauthorized" | "internal_error"` - needs to be extended with `"not_found"`
   - For this endpoint:
     - `400` → `"invalid_request"`.
     - `401` → `"unauthorized"`.
@@ -181,7 +181,7 @@ Example:
    - On failure (invalid JSON):
      - Return `400` with `ApiErrorResponse<"invalid_request">` and message `"Invalid JSON body"`.
 
-2. **Apply body validatrion schema**
+2. **Apply body validation schema**
    - `const parseResult = updateFlashcardCommandSchema.safeParse(json);`
    - If `!parseResult.success`:
      - Extract first error message and return `400` with `"invalid_request"`.
@@ -218,7 +218,7 @@ Example:
    - Do not set `updated_at` in the update payload - `on_flashcard_update` trigger will update `updated_at` automatically.
    - Construct a partial update object containing only `front`, `back` and `source` if it should change.
 
-3. **Fetch and update in a single call**
+3. **Update and select data for response in a single call**
    - Use Supabase `update` with filters:
      - `.from("flashcards")`
      - `.update({ front?, back?, source? })`
@@ -369,7 +369,7 @@ Logging guidelines:
 
 - Always log errors when they occur - use `createErrorLogger()` from src/lib/utils.ts to create a logger for a service or api route.
 - Log enough context to debug (user id, flashcard id, high-level error information).
-- Never log sensitive data - this rule has priority over any other one in caseof conflicts.
+- Never log sensitive data - this rule has priority over any other one in case of conflicts.
 - Do not write to `generation_error_logs` here; that table is reserved for generation-related failures.
 
 ## 8. Performance Considerations

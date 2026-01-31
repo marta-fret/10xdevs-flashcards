@@ -57,3 +57,12 @@ export const flashcardsListQuerySchema = z.object({
   order: z.enum(["asc", "desc"]).default("desc"),
   source: z.enum(["ai-full", "ai-edited", "manual"]).optional(),
 });
+
+export const updateFlashcardCommandSchema = z
+  .object({
+    front: z.string().trim().min(1).max(200).optional(),
+    back: z.string().trim().min(1).max(500).optional(),
+  })
+  .refine((data) => data.front !== undefined || data.back !== undefined, {
+    message: "At least one of front or back must be provided",
+  });

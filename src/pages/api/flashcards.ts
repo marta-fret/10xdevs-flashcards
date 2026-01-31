@@ -50,7 +50,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const result = await flashcardsService.createFlashcards(userId, body.flashcards);
     return jsonResponse({ flashcards: result }, 201);
   } catch {
-    // TODO: Add more specific error handling
     return errorResponse("internal_error", "Internal server error", 500);
   }
 };
