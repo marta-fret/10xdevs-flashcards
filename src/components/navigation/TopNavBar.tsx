@@ -64,9 +64,11 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({ currentPath }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden md:block">
-            <LogoutButton />
-          </div>
+          {!isMobileMenuOpen && (
+            <div className="hidden md:block">
+              <LogoutButton />
+            </div>
+          )}
 
           <div className="md:hidden flex items-center gap-2">
             <Button
@@ -113,9 +115,11 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({ currentPath }) => {
             })}
           </nav>
 
-          <div className="pt-2">
-            <LogoutButton />
-          </div>
+          {isMobileMenuOpen && (
+            <div className="pt-2">
+              <LogoutButton />
+            </div>
+          )}
         </div>
       </div>
     </header>
