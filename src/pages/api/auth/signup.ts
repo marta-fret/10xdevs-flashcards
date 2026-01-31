@@ -2,7 +2,8 @@ import type { APIRoute } from "astro";
 import type { SupabaseClient } from "../../../db/supabase.client.ts";
 import type { ApiErrorResponse, SignupApiErrorCode, SignupCommand } from "@/types.ts";
 import { signupCommandSchema } from "@/lib/authUtils";
-import { createApiErrorLogger, jsonResponse } from "../utils";
+import { createErrorLogger } from "@/lib/utils";
+import { jsonResponse } from "../utils";
 
 export const prerender = false;
 
@@ -22,7 +23,7 @@ interface SignupSuccessResponseBody {
 const errorResponse = (code: SignupApiErrorCode, message: string, status: number) =>
   jsonResponse<SignupErrorResponseBody>({ error: { code, message } }, status);
 
-const logError = createApiErrorLogger("signup");
+const logError = createErrorLogger("[API signup]");
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const { supabase } = locals as LocalsWithSupabase;

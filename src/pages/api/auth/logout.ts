@@ -1,7 +1,8 @@
 import type { APIRoute } from "astro";
 import type { SupabaseClient } from "../../../db/supabase.client.ts";
 import type { ApiErrorResponse, LogoutApiErrorCode } from "@/types.ts";
-import { createApiErrorLogger, jsonResponse } from "../utils";
+import { createErrorLogger } from "@/lib/utils";
+import { jsonResponse } from "../utils";
 
 export const prerender = false;
 
@@ -18,7 +19,7 @@ interface LogoutSuccessResponseBody {
 const errorResponse = (code: LogoutApiErrorCode, message: string, status: number) =>
   jsonResponse<LogoutErrorResponseBody>({ error: { code, message } }, status);
 
-const logError = createApiErrorLogger("logout");
+const logError = createErrorLogger("[API logout]");
 
 export const POST: APIRoute = async ({ locals }) => {
   const { supabase } = locals as LocalsWithSupabase;

@@ -6,8 +6,3 @@ export const jsonResponse = <T>(body: T, init?: number | ResponseInit) =>
       ...(typeof init === "object" && init.headers ? init.headers : {}),
     },
   });
-
-export const createApiErrorLogger = (apiName: string) => (message: string) => {
-  // eslint-disable-next-line no-console
-  console.error(`[API] ${apiName}: ${message}`);
-};
