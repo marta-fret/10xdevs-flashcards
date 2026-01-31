@@ -116,6 +116,9 @@ All data access is scoped to the authenticated user via Supabase Auth and Postgr
 - **Path parameters**:
   - `id`: integer, required.
 - **Request JSON**: none.
+- **Server behavior**:
+  - Deletes the flashcard row from `flashcards`.
+  - In case of DELETE we don't want to update `generations.accepted_unedited_count` and `generations.accepted_edited_count` because user could delete a flashcard just because he doesn't need it anymore, not because he rejected it.
 - **Response JSON (200)**:
   - `message`: string, e.g. `"flashcard_deleted"`.
 - **Success**:
