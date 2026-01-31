@@ -1,5 +1,11 @@
+import type {
+  CreateFlashcardCommandItem,
+  FlashcardDto,
+  FlashcardsListQueryCommand,
+  FlashcardsListResponseDto,
+  FlashcardListItemDto,
+} from "../../types";
 import type { SupabaseClient } from "../../db/supabase.client";
-import type { CreateFlashcardCommandItem, FlashcardDto } from "../../types";
 
 export class FlashcardsService {
   constructor(private supabase: SupabaseClient) {}
@@ -16,5 +22,39 @@ export class FlashcardsService {
     }
 
     return data as FlashcardDto[];
+  }
+
+  public async listFlashcards(userId: string, query: FlashcardsListQueryCommand): Promise<FlashcardsListResponseDto> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const offset = (page - 1) * limit;
+
+    const sortField = query.sort ?? "created_at";
+    const sortOrder = query.order ?? "desc";
+
+    const { data, error, count } = await this.supabase
+      .from("flashcards")
+      .select("id, front, back, source, generation_id, created_at, updated_at", { count: "exact" })
+      .eq("user_id", userId)
+      .order(sortField, { ascending: sortOrder === "asc" })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      throw new Error("Failed to list flashcards from database");
+    }
+
+    const items = (data ?? []) as FlashcardListItemDto[];
+    const totalItems = count ?? 0;
+    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total_items: totalItems,
+        total_pages: totalPages,
+      },
+    };
   }
 }
