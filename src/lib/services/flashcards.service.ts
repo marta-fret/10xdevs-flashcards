@@ -194,4 +194,25 @@ export class FlashcardsService {
 
     return updatedFlashcard;
   }
+
+  public async deleteFlashcard(userId: string, id: number): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from("flashcards")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      logError(
+        `Failed to delete flashcard from database for userId=${userId}, flashcardId=${id}: ${
+          error.message ?? "Unknown database error"
+        }`
+      );
+      throw new Error("Failed to delete flashcard from database");
+    }
+
+    return data ? true : false;
+  }
 }

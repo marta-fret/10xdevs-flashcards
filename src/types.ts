@@ -190,6 +190,7 @@ export interface ApiErrorResponse<Code extends string = string> {
 export type FlashcardsApiErrorCode = "invalid_request" | "unauthorized" | "internal_error";
 
 export type FlashcardsApiPatchErrorCode = FlashcardsApiErrorCode | "not_found";
+export type FlashcardsApiDeleteErrorCode = FlashcardsApiErrorCode | "not_found";
 
 // Error codes for /generations.
 export type GenerationsApiErrorCode =

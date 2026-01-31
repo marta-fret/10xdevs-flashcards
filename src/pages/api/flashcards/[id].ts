@@ -2,7 +2,9 @@ import type { APIRoute } from "astro";
 import { z } from "zod";
 import type {
   ApiErrorResponse,
+  DeleteFlashcardResponseDto,
   FlashcardDetailResponseDto,
+  FlashcardsApiDeleteErrorCode,
   FlashcardsApiPatchErrorCode,
   UpdateFlashcardCommand,
 } from "../../../types";
@@ -12,10 +14,11 @@ import { jsonResponse } from "../utils";
 
 export const prerender = false;
 
-type ErrorResponseBody = ApiErrorResponse<FlashcardsApiPatchErrorCode>;
+const errorResponse = <T extends string>(code: T, message: string, status: number) =>
+  jsonResponse<ApiErrorResponse<T>>({ error: { code, message } }, status);
 
-const errorResponse = (code: FlashcardsApiPatchErrorCode, message: string, status: number) =>
-  jsonResponse<ErrorResponseBody>({ error: { code, message } }, status);
+const patchErrorResponse = errorResponse<FlashcardsApiPatchErrorCode>;
+const deleteErrorResponse = errorResponse<FlashcardsApiDeleteErrorCode>;
 
 const flashcardIdSchema = z.preprocess((value) => {
   if (typeof value === "string") {
@@ -32,19 +35,19 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
   const { supabase, user } = locals;
 
   if (!supabase) {
-    return errorResponse("internal_error", "Supabase client not available", 500);
+    return patchErrorResponse("internal_error", "Supabase client not available", 500);
   }
 
   const userId = user?.id;
   if (!userId) {
-    return errorResponse("unauthorized", "Authentication required", 401);
+    return patchErrorResponse("unauthorized", "Authentication required", 401);
   }
 
   const rawId = params.id;
   const idParseResult = flashcardIdSchema.safeParse(rawId);
   if (!idParseResult.success) {
     const firstError = idParseResult.error.errors[0];
-    return errorResponse("invalid_request", firstError.message ?? "Invalid flashcard id", 400);
+    return patchErrorResponse("invalid_request", firstError.message ?? "Invalid flashcard id", 400);
   }
 
   const id = idParseResult.data as number;
@@ -53,13 +56,13 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
   try {
     json = await request.json();
   } catch {
-    return errorResponse("invalid_request", "Invalid JSON body", 400);
+    return patchErrorResponse("invalid_request", "Invalid JSON body", 400);
   }
 
   const bodyParseResult = updateFlashcardCommandSchema.safeParse(json);
   if (!bodyParseResult.success) {
     const firstError = bodyParseResult.error.errors[0];
-    return errorResponse("invalid_request", firstError.message ?? "Invalid request body", 400);
+    return patchErrorResponse("invalid_request", firstError.message ?? "Invalid request body", 400);
   }
 
   const command = bodyParseResult.data as UpdateFlashcardCommand;
@@ -70,11 +73,47 @@ export const PATCH: APIRoute = async ({ request, params, locals }) => {
     const result = await flashcardsService.updateFlashcard(userId, id, command);
 
     if (result === null) {
-      return errorResponse("not_found", "Flashcard not found", 404);
+      return patchErrorResponse("not_found", "Flashcard not found", 404);
     }
 
     return jsonResponse<FlashcardDetailResponseDto>(result, 200);
   } catch {
-    return errorResponse("internal_error", "Internal server error", 500);
+    return patchErrorResponse("internal_error", "Internal server error", 500);
+  }
+};
+
+export const DELETE: APIRoute = async ({ params, locals }) => {
+  const { supabase, user } = locals;
+
+  if (!supabase) {
+    return deleteErrorResponse("internal_error", "Supabase client not available", 500);
+  }
+
+  const userId = user?.id;
+  if (!userId) {
+    return deleteErrorResponse("unauthorized", "Authentication required", 401);
+  }
+
+  const rawId = params.id;
+  const idParseResult = flashcardIdSchema.safeParse(rawId);
+  if (!idParseResult.success) {
+    const firstError = idParseResult.error.errors[0];
+    return deleteErrorResponse("invalid_request", firstError.message ?? "Invalid flashcard id", 400);
+  }
+
+  const id = idParseResult.data as number;
+
+  const flashcardsService = new FlashcardsService(supabase);
+
+  try {
+    const deleted = await flashcardsService.deleteFlashcard(userId, id);
+
+    if (!deleted) {
+      return deleteErrorResponse("not_found", "Flashcard not found", 404);
+    }
+
+    return jsonResponse<DeleteFlashcardResponseDto>({ message: "flashcard_deleted" }, 200);
+  } catch {
+    return deleteErrorResponse("internal_error", "Internal server error", 500);
   }
 };
