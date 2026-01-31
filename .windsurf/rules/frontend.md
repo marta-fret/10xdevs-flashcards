@@ -9,6 +9,7 @@ globs: *.tsx,*.astro
 
 - Use Astro components (.astro) for static content and layout
 - Implement framework components in React only when interactivity is needed
+- If you need a validation schema which is the same as backend API call payload schema, don't duplicate it but move to src/lib/<domainUtilsFile> and reuse.
 
 ### Guidelines for Styling
 
