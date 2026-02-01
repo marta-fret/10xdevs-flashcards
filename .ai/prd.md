@@ -162,7 +162,7 @@ Manually creating high-quality educational flashcards is a time-consuming and te
 - **Title**: View Flashcard Collection
 - **Description**: As a logged-in user, I want to see a list of all my saved flashcards.
 - **Acceptance Criteria**:
-  - A dedicated view displays all the user's flashcards in a list format.
+  - A dedicated view displays a list of all the user's flashcards.
   - The list is paginated to handle a large number of cards.
   - Each item in the list shows a preview of the flashcard's content (e.g., the front text).
 

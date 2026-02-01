@@ -101,7 +101,7 @@ All data access is scoped to the authenticated user via Supabase Auth and Postgr
   - When the flashcard is linked to a generation (`generation_id` is not null) and its source transitions from `ai-full` to `ai-edited`, update `generations.accepted_unedited_count` and `generations.accepted_edited_count` for the corresponding generation row so analytics stay consistent.
   - Uses trigger `on_flashcard_update` to update `updated_at` automatically.
 - **Response JSON (200)**:
-  - Updated flashcard object (same shape as GET).
+  - `{ id: number; front: string; back: string; source: 'ai-full' | 'ai-edited' | 'manual'; generation_id: number | null; created_at: string; updated_at: string; }`
 - **Success**:
   - `200 OK` – updated.
 - **Errors**:

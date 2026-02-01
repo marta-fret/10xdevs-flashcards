@@ -46,12 +46,15 @@ Route map:
 - **Path**: `/flashcards`
 - **Purpose**: View, search, edit, delete, and manually create flashcards.
 - **Key info**: Displays saved flashcards with front/back data.
-- **Key components**: Responsive paginated grid of flashcard cards each with Edit / Delete buttons, a button for manual flashcard creation, modals for editing and creating a flashcard (fields: front text, back text; buttons: Save, Cancel; validation), deletion confirmation dialog, search field for filtering flashcards.
+- **Key components**: Responsive paginated grid of flashcard cards each with Edit and Delete buttons; a button for manual flashcard creation; modal for editing and creating a flashcard (fields: front text, back text; buttons: Save, Cancel; validation); deletion confirmation modal; search field for filtering flashcards.
 - **UX / accessibility / security**:
-  - Grid adapts 1–4 cols (xs→lg).
+  - List of proposal cards follow responsive grid (1–4 cols).
   - Card action buttons have visually hidden labels for screen readers.
   - Destructive actions require confirmation dialog.
-  - Data validation before flashcard creation and update operations.
+  - Data validation before flashcard creation and update operations. Submitting blocked until validation passes.
+  - Loader overlay blocks interactivity during async operations.
+  - Inline messages for validation errors, toasts for errors from backend API calls.
+
 - **Mapped requirements**: F-03–F-04, US-008–US-012.
 
 ### 2.4 Learning Session
