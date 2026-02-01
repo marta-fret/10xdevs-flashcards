@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 import { Card, CardContent, CardFooter } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
-import { FlashcardEditModal } from "./FlashcardEditModal";
+import { FlashcardEditModal } from "../shared/FlashcardEditModal";
 import type { FlashcardProposalUi, EditProposalFormValues } from "./types";
 
 interface FlashcardListItemProps {
@@ -82,10 +82,17 @@ export const FlashcardListItem: React.FC<FlashcardListItemProps> = ({ proposal, 
         </Button>
       </CardFooter>
       <FlashcardEditModal
-        proposal={proposal}
+        mode="edit"
+        initialValues={{ front: proposal.front, back: proposal.back }}
+        id={proposal.temp_id}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        onConfirm={onEdit}
+        onSubmit={(id, values) => {
+          if (id) {
+            onEdit(id, values);
+            setIsEditModalOpen(false);
+          }
+        }}
       />
     </Card>
   );

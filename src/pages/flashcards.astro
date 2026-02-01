@@ -1,0 +1,16 @@
+---
+import RootAuthenticatedLayout from "../layouts/RootAuthenticatedLayout.astro";
+import { FlashcardsManagementView } from "../components/flashcards/FlashcardsManagementView";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect("/login");
+}
+---
+
+<RootAuthenticatedLayout title="Flashcards Management">
+  <FlashcardsManagementView client:load />
+</RootAuthenticatedLayout>

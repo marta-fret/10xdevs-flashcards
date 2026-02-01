@@ -75,12 +75,12 @@ Global UI roots (for toasts) are provided by the app shell, consistent with the 
   - Card actions:
     - `onEditClick(id)` → opens `FlashcardEditModal` in "edit" mode with prefilled values.
     - `onDeleteClick(id)` → opens `DeleteFlashcardDialog` for the selected card.
-  - Create/update modal:
-    - `onSubmitCreate(values)` → POST `/flashcards` (manual creation) then update list.
-    - `onSubmitEdit(id, values)` → PATCH `/flashcards/:id` then update list item.
-    - `onCancel()` → closes modal.
+  - Create/update modal (via shared `FlashcardEditModal`):
+    - In create mode, `onSubmit(undefined, values)` → POST `/flashcards` (manual creation) then refresh list.
+    - In edit mode, `onSubmit(id, values)` → PATCH `/flashcards/:id` then refresh the list.
+    - `onClose()` → closes modal.
   - Delete dialog:
-    - `onConfirm(id)` → DELETE `/flashcards/:id` then remove from list.
+    - `onConfirm()` → DELETE `/flashcards/:id` for the current `deleteCandidateId`, then refresh list.
     - `onCancel()` → closes dialog.
 - **Handled validation**
   - Prevents interactions while async operations are in progress:
@@ -400,7 +400,7 @@ interface FlashcardsViewState {
   - `items: FlashcardListItemViewModel[]` – current page of flashcards.
   - `pagination: PaginationMetaDto | null` – metadata for controls; null until first successful load.
   - `query: FlashcardsListQueryViewModel` – current GET `/flashcards` query (page, sort, order, limit).
-  - `isLoading: boolean` – when data is loadingiincluding refething.
+  - `isLoading: boolean` – when data is loading, including refetching.
   - `isGlobalMutating: boolean` – true during create/edit/delete; drives `LoadingOverlay`.
   - `listError: string | undefined` – human-readable list load error message.
   - `mutationError: string | undefined` – last error from create/edit/delete; shown as toast and optionally inline.
@@ -696,7 +696,7 @@ All steps should follow the requirements and specifications described in this do
 
 6. **Implement FlashcardsManagementView component**
    - Use `useFlashcardsManagement` and wire its result to child components:
-     - Use `isListLoading` and `isGlobalMutating` to pass proper isDisabled value into `FlashcardsToolbar`, `PaginationControls`.
+     - Use `state.isLoading` and `state.isGlobalMutating` to pass proper `isDisabled` values into `FlashcardsToolbar` and `PaginationControls`.
      - Pass appropriate handlers into child components.
    - Integrate toasts for API errors.
 
@@ -751,7 +751,7 @@ All steps should follow the requirements and specifications described in this do
 12. **Testing and validation** (for future)
     - Add unit tests for:
       - Rendering and basic interactions of `FlashcardsManagementView`.
-      - Validation logic of `FlashcardFormModal` (char limits).
+      - Validation logic of `FlashcardEditModal` (char limits).
       - Correct handling of successful and failed API calls (using MSW in tests if available).
     - Manually verify:
       - Paginated navigation.
