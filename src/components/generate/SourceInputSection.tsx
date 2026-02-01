@@ -44,10 +44,10 @@ export const SourceInputSection: React.FC<SourceInputSectionProps> = ({
         </p>
         <Textarea
           id="source-text"
-          placeholder="Paste your study notes here..."
+          placeholder="IMPORTANT: Do not provide any sensitive or personal information when entering learning sources here."
           value={sourceText}
           onChange={(e) => setSourceText(e.target.value)}
-          className="min-h-[200px] text-base"
+          className="min-h-[200px] text-base placeholder:text-red-400"
           disabled={disabled || isLoading}
         />
         <div className="flex justify-between items-center">

@@ -1,0 +1,20 @@
+---
+import RootAuthenticatedLayout from "../layouts/RootAuthenticatedLayout.astro";
+import { UnderConstruction } from "../components/shared/UnderConstruction";
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+
+if (!user) {
+  return Astro.redirect("/login");
+}
+---
+
+<RootAuthenticatedLayout title="User Profile">
+  <UnderConstruction
+    title="User Profile"
+    description="We are working on the user profile page. Soon you will be able to manage your account settings here."
+    client:load
+  />
+</RootAuthenticatedLayout>
